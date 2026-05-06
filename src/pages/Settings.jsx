@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { initAI } from '../lib/ai'
 import toast from 'react-hot-toast'
 import {
-  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus
+  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key
 } from 'lucide-react'
 
 const CURRENCIES = [
@@ -47,6 +47,11 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('company')
   const [stations, setStations] = useState([])
   const [saving, setSaving] = useState(false)
+  
+  // SQL Terminal State
+  const [sqlQuery, setSqlQuery] = useState('')
+  const [sqlResult, setSqlResult] = useState(null)
+  const [executingSql, setExecutingSql] = useState(false)
   const [form, setForm] = useState({})
   const [users, setUsers] = useState([])
   const [isAddingStation, setIsAddingStation] = useState(false)
@@ -94,9 +99,13 @@ export default function Settings() {
     { id: 'payroll', icon: Calculator, label: t('payrollSettings') },
     { id: 'templates', icon: FileText, label: isRTL ? 'تنسيق التقارير' : 'Report Templates' },
     { id: 'notifications', icon: Bell, label: t('notificationSettings') },
-    ...(isAdmin ? [
+    ...(isAdmin || normalizedRole === 'manager' ? [
       { id: 'custom_fields', icon: ListPlus, label: 'الحقول الإضافية' },
-      { id: 'users', icon: Users, label: t('userManagement') }
+      { id: 'users', icon: Users, label: t('userManagement') },
+    ] : []),
+    ...(isAdmin ? [
+      { id: 'roles', icon: Shield, label: 'الصلاحيات المخصصة' },
+      { id: 'terminal', icon: Terminal, label: isRTL ? 'منفذ الأوامر SQL' : 'SQL Terminal' }
     ] : [])
   ]
 
@@ -281,6 +290,82 @@ export default function Settings() {
                   </div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Roles & Permissions Settings */}
+          {activeTab === 'roles' && isAdmin && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">الصلاحيات المخصصة (RBAC)</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">أنشئ مسميات وظيفية جديدة وحدد الصفحات المسموح لكل وظيفة برؤيتها.</p>
+                </div>
+                <button onClick={() => {
+                  const roleName = window.prompt('أدخل المسمى الوظيفي الجديد (مثال: مراقب جودة):')
+                  if (!roleName) return
+                  const currentRoles = form.dynamic_roles || {}
+                  if (currentRoles[roleName]) return toast.error('هذا المسمى موجود بالفعل')
+                  setForm(prev => ({ ...prev, dynamic_roles: { ...currentRoles, [roleName]: ['profile', 'tasks', 'chat'] } }))
+                }} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2">
+                  <Plus size={16} /> إضافة وظيفة
+                </button>
+              </div>
+
+              {Object.keys(form.dynamic_roles || {}).length === 0 ? (
+                <div className="text-center py-12 text-gray-400">لا توجد وظائف مخصصة حالياً. اضغط على إضافة وظيفة للبدء.</div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(form.dynamic_roles || {}).map(([roleName, permissions]) => {
+                    const togglePermission = (page) => {
+                      const currentRoles = form.dynamic_roles || {}
+                      const currentPerms = currentRoles[roleName] || []
+                      const newPerms = currentPerms.includes(page) ? currentPerms.filter(p => p !== page) : [...currentPerms, page]
+                      setForm(prev => ({ ...prev, dynamic_roles: { ...currentRoles, [roleName]: newPerms } }))
+                    }
+
+                    const removeRole = () => {
+                      if (!confirm(`تأكيد حذف وظيفة ${roleName}؟ (تأكد من عدم وجود موظفين يحملون هذه الوظيفة)`)) return
+                      const currentRoles = { ...form.dynamic_roles }
+                      delete currentRoles[roleName]
+                      setForm(prev => ({ ...prev, dynamic_roles: currentRoles }))
+                    }
+
+                    const AVAILABLE_PAGES = [
+                      { id: 'dashboard', label: 'لوحة التحكم' },
+                      { id: 'employees', label: 'الموظفين' },
+                      { id: 'attendance', label: 'الحضور' },
+                      { id: 'clients', label: 'العملاء' },
+                      { id: 'suppliers', label: 'الموردين' },
+                      { id: 'products', label: 'المخزون' },
+                      { id: 'deals', label: 'الصفقات' },
+                      { id: 'invoices', label: 'الفواتير' },
+                      { id: 'transactions', label: 'الخزينة' },
+                      { id: 'payroll', label: 'الرواتب' },
+                      { id: 'tasks', label: 'المهام' },
+                      { id: 'chat', label: 'الدردشة' }
+                    ]
+
+                    return (
+                      <div key={roleName} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                        <div className="flex items-center justify-between mb-3 border-b border-gray-200 dark:border-white/10 pb-2">
+                          <h4 className="font-bold text-gray-800 dark:text-emerald-400 text-lg">{roleName}</h4>
+                          <button onClick={removeRole} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg"><Trash2 size={16} /></button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                          {AVAILABLE_PAGES.map(page => (
+                            <label key={page.id} className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={(permissions || []).includes(page.id)} onChange={() => togglePermission(page.id)}
+                                className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{page.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -618,18 +703,50 @@ export default function Settings() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {users.map(u => (
-                      <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-800">{u.name}</td>
+                      <tr key={u.id} className="hover:bg-gray-50 group">
+                        <td className="px-4 py-3 font-medium text-gray-800">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                            {u.name}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 text-gray-500">{u.email}</td>
                         <td className="px-4 py-3">
-                          {u.id === employee?.id ? (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-md text-xs">{t(u.role?.toLowerCase() || 'employee')} (You)</span>
-                          ) : (
-                            <select value={u.role?.toLowerCase() || 'employee'} onChange={(e) => updateUserRole(u.id, e.target.value)}
-                              className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white">
-                              {ROLES.map(r => <option key={r} value={r}>{t(r)}</option>)}
-                            </select>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {u.id === employee?.id ? (
+                              <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-md text-xs">{t(u.role?.toLowerCase() || 'employee')} (You)</span>
+                            ) : (
+                              <>
+                                <select value={u.role || 'employee'} onChange={(e) => updateUserRole(u.id, e.target.value)}
+                                  className="border border-gray-200 dark:border-white/10 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">
+                                  <optgroup label={isRTL ? "الوظائف الأساسية" : "Standard Roles"}>
+                                    {ROLES.map(r => <option key={r} value={r}>{t(r)}</option>)}
+                                    <option value="pending">Pending</option>
+                                  </optgroup>
+                                  {Object.keys(form.dynamic_roles || {}).length > 0 && (
+                                    <optgroup label={isRTL ? "الوظائف المخصصة" : "Custom Roles"}>
+                                      {Object.keys(form.dynamic_roles || {}).map(r => <option key={r} value={r}>{r}</option>)}
+                                    </optgroup>
+                                  )}
+                                </select>
+                                <button 
+                                  onClick={async () => {
+                                    if (!confirm(isRTL ? 'هل أنت متأكد من حذف هذا الموظف؟' : 'Are you sure you want to delete this employee?')) return
+                                    const { error } = await supabase.from('employees').delete().eq('id', u.id)
+                                    if (error) toast.error(error.message)
+                                    else {
+                                      toast.success(isRTL ? 'تم الحذف' : 'Deleted')
+                                      setUsers(users.filter(x => x.id !== u.id))
+                                    }
+                                  }}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all"
+                                  title={t('delete')}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -639,8 +756,84 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Save Button (Not in Users Tab) */}
-          {activeTab !== 'users' && (
+          {/* 6. SQL Terminal (Super Admin Only) */}
+          {activeTab === 'terminal' && isAdmin && (
+            <div className="space-y-6">
+              <div className="bg-gray-900 rounded-2xl p-5 shadow-2xl border border-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                    <Terminal size={20} />
+                    <h3>SQL Console (Super Admin)</h3>
+                  </div>
+                  <button 
+                    onClick={async () => {
+                      if (!sqlQuery.trim()) return
+                      setExecutingSql(true)
+                      try {
+                        const { data, error } = await supabase.rpc('exec_sql', { sql_query: sqlQuery })
+                        if (error) throw error
+                        setSqlResult(data)
+                        toast.success('Command executed')
+                      } catch (e) {
+                        setSqlResult({ error: e.message })
+                        toast.error('Execution failed')
+                      } finally {
+                        setExecutingSql(false)
+                      }
+                    }}
+                    disabled={executingSql}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                  >
+                    {executingSql ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Play size={14} />}
+                    Run Query
+                  </button>
+                </div>
+                
+                <textarea 
+                  value={sqlQuery}
+                  onChange={e => setSqlQuery(e.target.value)}
+                  placeholder="SELECT * FROM employees LIMIT 5; ..."
+                  className="w-full h-40 bg-gray-950 text-emerald-400 font-mono text-sm p-4 rounded-xl border border-gray-800 focus:outline-none focus:ring-1 focus:ring-emerald-500 mb-4"
+                />
+
+                {sqlResult && (
+                  <div className="bg-gray-950/50 rounded-xl border border-gray-800 p-4 overflow-x-auto">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Query Result</span>
+                      <button onClick={() => setSqlResult(null)} className="text-gray-500 hover:text-gray-300"><X size={14} /></button>
+                    </div>
+                    <pre className="text-xs text-gray-300 font-mono">
+                      {JSON.stringify(sqlResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
+                  <h4 className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 font-bold mb-2 text-sm">
+                    <Database size={16} />
+                    Database Health
+                  </h4>
+                  <p className="text-[10px] text-emerald-600/70 dark:text-emerald-500/70 leading-relaxed">
+                    This terminal allows running raw SQL directly against the database. Use with extreme caution. All actions are final and cannot be undone.
+                  </p>
+                </div>
+                <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/50">
+                  <h4 className="flex items-center gap-2 text-amber-800 dark:text-amber-400 font-bold mb-2 text-sm">
+                    <AlertCircle size={16} />
+                    Security Notice
+                  </h4>
+                  <p className="text-[10px] text-amber-600/70 dark:text-amber-500/70 leading-relaxed">
+                    Only Super Admins can see this tab. If you share your account, you give full database access to the other person.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Save Button (Not in Users/Terminal Tab) */}
+          {activeTab !== 'users' && activeTab !== 'terminal' && (
             <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end">
               <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all disabled:opacity-70">
                 {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}

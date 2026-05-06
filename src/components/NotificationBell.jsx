@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
-import { Bell, Package, Handshake, FileText, Cake, CreditCard, X, CheckCheck } from 'lucide-react'
+import { Bell, Package, Handshake, FileText, Cake, CreditCard, X, CheckCheck, ClipboardList } from 'lucide-react'
 
 export default function NotificationBell() {
   const { settings } = useSettings()
@@ -101,6 +101,45 @@ export default function NotificationBell() {
         color: 'text-red-600 bg-red-50',
         title: t('overdueInvoiceAlert'),
         body: `${inv.invoice_number} — ${inv.clients?.client_name}`,
+        time: new Date(),
+      }))
+    }
+
+    // 5. Tasks - للموظف: مهام جديدة معلقة
+    if (employee?.id) {
+      const { data: myTasks } = await supabase
+        .from('tasks')
+        .select('id, title, priority, due_date')
+        .eq('assigned_to', employee.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(5)
+      myTasks?.forEach(task => items.push({
+        id: `task-${task.id}`,
+        type: 'task',
+        icon: ClipboardList,
+        color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20',
+        title: 'مهمة جديدة',
+        body: task.title,
+        time: new Date(),
+      }))
+    }
+
+    // Tasks for managers: employees who acknowledged
+    if (isManagement) {
+      const { data: ackTasks } = await supabase
+        .from('tasks')
+        .select('id, title, assignee:assigned_to(name)')
+        .eq('assigned_by', employee?.id)
+        .eq('status', 'acknowledged')
+        .limit(5)
+      ackTasks?.forEach(task => items.push({
+        id: `task-ack-${task.id}`,
+        type: 'task',
+        icon: ClipboardList,
+        color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20',
+        title: 'تم استلام مهمة',
+        body: `${task.assignee?.name} استلم: ${task.title}`,
         time: new Date(),
       }))
     }

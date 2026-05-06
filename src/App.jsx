@@ -18,7 +18,10 @@ import Invoices from './pages/Invoices'
 import Payroll from './pages/Payroll'
 import Profile from './pages/Profile'
 import ActivityLogs from './pages/ActivityLogs'
+import Tasks from './pages/Tasks'
+import Chat from './pages/Chat'
 import AIChatbot from './components/AIChatbot'
+import ClientPortal from './pages/ClientPortal'
 
 function PrivateRoute({ children, page }) {
   const { user, loading, canAccess } = useAuth()
@@ -34,6 +37,13 @@ function PrivateRoute({ children, page }) {
   )
   
   if (!user) return <Navigate to="/login" />
+  
+  // Pending users can ONLY access profile (to view status) or specific pending page
+  const { normalizedRole } = useAuth()
+  if (normalizedRole === 'pending' && page !== 'profile') {
+    return <Navigate to="/profile" replace />
+  }
+
   if (page && !canAccess(page)) return <Navigate to="/profile" replace />
   
   return children
@@ -64,6 +74,7 @@ function AppContent() {
       />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/portal" element={<ClientPortal />} />
         
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={
@@ -83,6 +94,8 @@ function AppContent() {
           <Route path="settings" element={<PrivateRoute page="settings"><Settings /></PrivateRoute>} />
           <Route path="profile" element={<PrivateRoute page="profile"><Profile /></PrivateRoute>} />
           <Route path="activity" element={<PrivateRoute page="activity"><ActivityLogs /></PrivateRoute>} />
+          <Route path="tasks" element={<PrivateRoute page="tasks"><Tasks /></PrivateRoute>} />
+          <Route path="chat" element={<PrivateRoute page="chat"><Chat /></PrivateRoute>} />
         </Route>
       </Routes>
       <AIChatbot />

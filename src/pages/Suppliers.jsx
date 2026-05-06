@@ -8,7 +8,7 @@ import Modal from '../components/Modal'
 import toast from 'react-hot-toast'
 import { Plus, Search, Pencil, Trash2, Phone, MessageCircle, Eye, Upload, Image as ImageIcon } from 'lucide-react'
 
-const empty = { supplier_name: '', phone: '', current_balance: '', station_id: '', notes: '', logo_url: '', custom_fields: {} }
+const empty = { supplier_name: '', phone: '', current_balance: '', station_id: '', notes: '', logo_url: '', custom_data: {} }
 
 export default function Suppliers() {
   const { employee } = useAuth()
@@ -44,7 +44,7 @@ export default function Suppliers() {
   }
 
   function openNew() { setForm(empty); setEditing(null); setModal(true) }
-  function openEdit(r) { setForm({ ...r, custom_fields: r.custom_fields || {} }); setEditing(r.id); setModal(true) }
+  function openEdit(r) { setForm({ ...r, custom_data: r.custom_data || {} }); setEditing(r.id); setModal(true) }
 
   function openView(supplier) {
     setViewSupplier(supplier)
@@ -218,7 +218,7 @@ export default function Suppliers() {
           {customFieldsSchema.map(f => (
             <div key={f.name}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-              <input type={f.type || 'text'} value={form.custom_fields?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_fields: { ...prev.custom_fields, [f.name]: e.target.value } }))}
+              <input type={f.type || 'text'} value={form.custom_data?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.name]: e.target.value } }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
           ))}
@@ -259,7 +259,7 @@ export default function Suppliers() {
                 <p className="text-sm text-gray-500 mb-1">المديونية: <span className={`font-bold ${Number(viewSupplier.current_balance) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{Number(viewSupplier.current_balance).toLocaleString()} ج</span></p>
                 <p className="text-sm text-gray-500 mb-2">ملاحظات: <span className="font-medium text-gray-800">{viewSupplier.notes || '—'}</span></p>
                 {customFieldsSchema.map(f => (
-                  <p key={f.name} className="text-sm text-gray-500 mb-1">{f.label}: <span className="font-medium text-gray-800">{viewSupplier.custom_fields?.[f.name] || '—'}</span></p>
+                  <p key={f.name} className="text-sm text-gray-500 mb-1">{f.label}: <span className="font-medium text-gray-800">{viewSupplier.custom_data?.[f.name] || '—'}</span></p>
                 ))}
               </div>
             </div>

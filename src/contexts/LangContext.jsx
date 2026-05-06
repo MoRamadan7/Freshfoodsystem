@@ -239,7 +239,6 @@ export const translations = {
     cash: 'كاش',
     transfer: 'تحويل بنكي',
     check: 'شيك',
-    nameRequired: 'الاسم مطلوب',
     updateSuccess: 'تم التحديث بنجاح',
     addSuccess: 'تمت الإضافة بنجاح',
     deleteConfirm: 'هل أنت متأكد من الحذف؟',
@@ -285,15 +284,7 @@ export const translations = {
     generatePayroll: 'إنشاء كشف الرواتب',
     exportPayroll: 'تصدير كشف Excel',
 
-    // Notifications
-    notifications: 'الإشعارات',
-    noNotifications: 'لا توجد إشعارات',
-    markAllRead: 'تحديد الكل كمقروء',
-    lowStockAlert: 'مخزون منخفض',
-    dealClosingAlert: 'صفقة قاربت الإغلاق',
-    overdueInvoiceAlert: 'فاتورة متأخرة السداد',
     birthdayAlert: 'عيد ميلاد موظف',
-    payrollAlert: 'موعد استحقاق الرواتب',
     myProfile: 'الملف الشخصي للموظف',
     personalInfo: 'المعلومات الشخصية',
     salaryHistory: 'مسيرات الرواتب السابقة',
@@ -554,7 +545,6 @@ export const translations = {
     cash: 'Cash',
     transfer: 'Bank Transfer',
     check: 'Check',
-    nameRequired: 'Name is required',
     updateSuccess: 'Updated successfully',
     addSuccess: 'Added successfully',
     deleteConfirm: 'Are you sure you want to delete?',
@@ -600,15 +590,7 @@ export const translations = {
     generatePayroll: 'Generate Payroll',
     exportPayroll: 'Export Excel',
 
-    // Notifications
-    notifications: 'Notifications',
-    noNotifications: 'No notifications',
-    markAllRead: 'Mark all as read',
-    lowStockAlert: 'Low Stock',
-    dealClosingAlert: 'Deal Closing Soon',
-    overdueInvoiceAlert: 'Overdue Invoice',
     birthdayAlert: 'Employee Birthday',
-    payrollAlert: 'Payroll Due',
   }
 }
 

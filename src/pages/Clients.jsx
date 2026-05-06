@@ -4,6 +4,7 @@ import { logActivity } from '../lib/logger'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
+import { useSearchParams } from 'react-router-dom'
 import Modal from '../components/Modal'
 import toast from 'react-hot-toast'
 import { Plus, Search, Pencil, Trash2, Phone, MessageCircle, Eye, Upload, Image as ImageIcon } from 'lucide-react'
@@ -14,10 +15,11 @@ const empty = {
   client_name: '', phone: '', country_city: '', 
   client_source: '', client_type: 'retail', 
   credit_limit: '', station_id: '', assigned_sales_id: '', notes: '',
-  logo_url: '', custom_fields: {}
+  logo_url: '', custom_data: {}
 }
 
 export default function Clients() {
+  const [searchParams] = useSearchParams()
   const { employee } = useAuth()
   const { settings } = useSettings()
   const { t } = useLang()
@@ -26,7 +28,7 @@ export default function Clients() {
   const [rows, setRows] = useState([])
   const [stations, setStations] = useState([])
   const [salesEmployees, setSalesEmployees] = useState([])
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('search') || '')
   const [typeFilter, setTypeFilter] = useState('')
   const [stationFilter, setStationFilter] = useState('')
   const [modal, setModal] = useState(false)
@@ -76,7 +78,7 @@ export default function Clients() {
   function openEdit(r) {
     // Strip virtual computed field before populating form
     const { assigned_sales, ...editData } = r
-    setForm({ ...editData, custom_fields: editData.custom_fields || {} })
+    setForm({ ...editData, custom_data: editData.custom_data || {} })
     setEditing(r.id)
     setModal(true)
   }
@@ -303,7 +305,7 @@ export default function Clients() {
           {customFieldsSchema.map(f => (
             <div key={f.name}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-              <input type={f.type || 'text'} value={form.custom_fields?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_fields: { ...prev.custom_fields, [f.name]: e.target.value } }))}
+              <input type={f.type || 'text'} value={form.custom_data?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.name]: e.target.value } }))}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
           ))}
@@ -344,9 +346,42 @@ export default function Clients() {
                 <p className="text-sm text-gray-500">النوع: <span className="font-medium text-gray-800">{typeLabel[viewClient.client_type]}</span></p>
                 <p className="text-sm text-gray-500">المدينة: <span className="font-medium text-gray-800">{viewClient.country_city || '—'}</span></p>
                 {customFieldsSchema.map(f => (
-                  <p key={f.name} className="text-sm text-gray-500">{f.label}: <span className="font-medium text-gray-800">{viewClient.custom_fields?.[f.name] || '—'}</span></p>
+                  <p key={f.name} className="text-sm text-gray-500">{f.label}: <span className="font-medium text-gray-800">{viewClient.custom_data?.[f.name] || '—'}</span></p>
                 ))}
               </div>
+            </div>
+
+            {/* Portal Link Access */}
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
+              <h4 className="font-bold text-emerald-800 dark:text-emerald-400 mb-2">بوابة العميل (Client Portal)</h4>
+              <p className="text-xs text-emerald-600 dark:text-emerald-500 mb-3">يمكن للعميل الدخول لرؤية فواتيره ومدفوعاته عبر هذا الرابط الفريد.</p>
+              {viewClient.portal_token ? (
+                <div className="flex items-center gap-2">
+                  <input readOnly value={`${window.location.origin}/portal?token=${viewClient.portal_token}`} className="flex-1 text-xs px-3 py-2 bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 rounded-lg outline-none" />
+                  <button onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/portal?token=${viewClient.portal_token}`)
+                    toast.success('تم نسخ الرابط')
+                  }} className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">نسخ</button>
+                  <button onClick={async () => {
+                    if (!confirm('هل تريد تغيير الرابط؟ الرابط القديم سيتوقف عن العمل.')) return
+                    const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+                    await supabase.from('clients').update({ portal_token: newToken }).eq('id', viewClient.id)
+                    setViewClient({ ...viewClient, portal_token: newToken })
+                    setRows(rows.map(r => r.id === viewClient.id ? { ...r, portal_token: newToken } : r))
+                    toast.success('تم تجديد الرابط')
+                  }} className="px-3 py-2 bg-white border border-emerald-200 text-emerald-600 text-xs font-bold rounded-lg hover:bg-emerald-50">تجديد</button>
+                </div>
+              ) : (
+                <button onClick={async () => {
+                  const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+                  await supabase.from('clients').update({ portal_token: newToken }).eq('id', viewClient.id)
+                  setViewClient({ ...viewClient, portal_token: newToken })
+                  setRows(rows.map(r => r.id === viewClient.id ? { ...r, portal_token: newToken } : r))
+                  toast.success('تم إنشاء رابط البوابة')
+                }} className="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700">
+                  إنشاء رابط دخول
+                </button>
+              )}
             </div>
             
             <div>

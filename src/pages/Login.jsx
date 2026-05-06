@@ -30,11 +30,25 @@ export default function Login() {
         setLoading(false)
         return toast.error('يرجى إدخال الاسم بالكامل')
       }
-      const { error } = await signUp(email, password, name)
-      if (error) toast.error(error.message)
-      else {
-        toast.success('تم إنشاء الحساب بنجاح! يمكنك الدخول الآن.')
+      
+      try {
+        const { error, data } = await signUp(email, password, name)
+        if (error) throw error
+
+        // Attempt to insert into employees table
+        if (data?.user) {
+          await supabase.from('employees').insert({
+             name: name,
+             email: email,
+             role: 'Pending',
+             is_active: false
+          })
+        }
+        
+        toast.success('تم التسجيل! بانتظار موافقة الإدارة.')
         setMode('login')
+      } catch (err) {
+        toast.error(err.message)
       }
     }
     setLoading(false)

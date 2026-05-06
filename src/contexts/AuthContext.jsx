@@ -6,12 +6,13 @@ export const useAuth = () => useContext(AuthContext)
 
 // Role-based page permissions
 export const ROLE_PERMISSIONS = {
-  admin: ['dashboard', 'employees', 'attendance', 'clients', 'deals', 'products', 'suppliers', 'transactions', 'invoices', 'payroll', 'settings', 'activity', 'profile'],
-  manager: ['dashboard', 'employees', 'attendance', 'clients', 'deals', 'products', 'suppliers', 'transactions', 'invoices', 'payroll', 'activity', 'profile'],
-  accountant: ['clients', 'deals', 'transactions', 'invoices', 'payroll', 'profile'],
-  sales: ['clients', 'deals', 'products', 'invoices', 'profile'],
-  hr: ['employees', 'attendance', 'payroll', 'profile'],
-  employee: ['profile'],
+  admin:      ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','settings','activity','profile','tasks'],
+  manager:    ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','activity','profile','tasks'],
+  accountant: ['clients','deals','transactions','invoices','payroll','profile','tasks'],
+  sales:      ['clients','deals','products','invoices','profile','tasks'],
+  hr:         ['employees','attendance','payroll','profile','tasks'],
+  labor:      ['profile','tasks'],
+  employee:   ['profile','tasks'],
 }
 
 export function AuthProvider({ children }) {
@@ -33,13 +34,20 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const [dynamicRoles, setDynamicRoles] = useState({})
+
   async function fetchEmployee(email) {
-    const { data } = await supabase.from('employees').select('*').eq('email', email).single()
-    setEmployee(data)
+    const { data: empData } = await supabase.from('employees').select('*').eq('email', email).single()
+    const { data: setts } = await supabase.from('settings').select('*').single()
+    
+    setEmployee(empData)
+    if (setts?.dynamic_roles) {
+      setDynamicRoles(setts.dynamic_roles)
+    }
     setLoading(false)
   }
 
-  // Normalize role to lowercase english key
+  // Normalize role to lowercase english key or keep dynamic
   const getNormalizedRole = (emp) => {
     if (!emp?.role) return 'employee'
     const roleMap = {
@@ -49,17 +57,25 @@ export function AuthProvider({ children }) {
       'sales': 'sales', 'مبيعات': 'sales', 'مسؤول مبيعات (sales)': 'sales', 'مسؤول مبيعات (Sales)': 'sales',
       'hr': 'hr', 'موارد بشرية': 'hr', 'موارد بشرية (hr)': 'hr', 'موارد بشرية (HR)': 'hr',
       'labor': 'labor', 'عامل': 'labor', 'فني / عامل (labor)': 'labor', 'فني / عامل (Labor)': 'labor',
-      'employee': 'employee', 'موظف': 'employee', 'موظف (employee)': 'employee', 'موظف (Employee)': 'employee'
+      'employee': 'employee', 'موظف': 'employee', 'موظف (employee)': 'employee', 'موظف (Employee)': 'employee',
+      'pending': 'pending'
     }
-    const r = (emp.role || '').toLowerCase()
-    return roleMap[r] || 'employee'
+    const raw = emp.role
+    const lower = raw.toLowerCase()
+    
+    if (dynamicRoles[raw]) return raw // It's a custom dynamic role
+    
+    return roleMap[lower] || 'employee'
   }
 
   const normalizedRole = getNormalizedRole(employee)
   const isAdmin = normalizedRole === 'admin'
-  const permissions = ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS.employee
+  const permissions = dynamicRoles[normalizedRole] ?? ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS.employee
 
-  const canAccess = (page) => permissions.includes(page)
+  const canAccess = (page) => {
+    if (isAdmin) return true // Admin can access everything
+    return permissions.includes(page)
+  }
 
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
   const signInWithGoogle = () => supabase.auth.signInWithOAuth({

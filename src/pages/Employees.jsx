@@ -6,8 +6,9 @@ import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
 import Modal from '../components/Modal'
 import toast from 'react-hot-toast'
-import { Plus, Search, Pencil, Trash2, UserCheck, UserX, Phone, MessageCircle, Eye, Facebook, Linkedin, Instagram, Printer } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, UserCheck, UserX, Phone, MessageCircle, Eye, Facebook, Linkedin, Instagram, Printer, UserMinus, ShieldAlert, Download } from 'lucide-react'
 import { generateEmployeeListHTML } from '../lib/employeeTemplate'
+import { exportToExcel } from '../lib/exportHelpers'
 
 const ROLES = ['Admin', 'Manager', 'Accountant', 'Sales', 'HR', 'Labor']
 const empty = { 
@@ -15,7 +16,14 @@ const empty = {
   employee_type: 'monthly', basic_salary: '', 
   overtime_rate: '', hourly_rate: '', daily_rate: '',
   gender: 'male', hire_date: '', is_active: true,
-  station_id: '', custom_fields: {} 
+  station_id: '', custom_data: {},
+  employment_status: 'active'
+}
+
+const STATUS_CONFIG = {
+  active:     { label: 'نشط',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', icon: UserCheck },
+  resigned:   { label: 'استقال', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',   icon: UserMinus },
+  terminated: { label: 'فُصل',   color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',           icon: ShieldAlert },
 }
 
 export default function Employees() {
@@ -37,6 +45,10 @@ export default function Employees() {
   const [editing, setEditing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('active')
+  const [endServiceModal, setEndServiceModal] = useState(false)
+  const [endServiceEmployee, setEndServiceEmployee] = useState(null)
+  const [endServiceForm, setEndServiceForm] = useState({ type: 'resigned', date: '', reason: '' })
 
   useEffect(() => { load(); loadLookups() }, [])
 
@@ -58,7 +70,7 @@ export default function Employees() {
   }
 
   function openNew() { setForm(empty); setEditing(null); setModal(true) }
-  function openEdit(r) { setForm({ ...r, custom_fields: r.custom_fields || {} }); setEditing(r.id); setModal(true) }
+  function openEdit(r) { setForm({ ...r, custom_data: r.custom_data || {} }); setEditing(r.id); setModal(true) }
   function closeModal() { setModal(false); setEditing(null) }
 
   function openView(r) {
@@ -103,6 +115,30 @@ export default function Employees() {
     }
   }
 
+  function openEndService(r) {
+    setEndServiceEmployee(r)
+    setEndServiceForm({ type: 'resigned', date: new Date().toISOString().split('T')[0], reason: '' })
+    setEndServiceModal(true)
+  }
+
+  async function saveEndService() {
+    if (!endServiceForm.date) return toast.error('حدد تاريخ إنهاء الخدمة')
+    const payload = {
+      employment_status: endServiceForm.type,
+      is_active: false,
+      end_of_service_reason: endServiceForm.reason || null,
+      ...(endServiceForm.type === 'resigned'
+        ? { resignation_date: endServiceForm.date }
+        : { termination_date: endServiceForm.date })
+    }
+    const { error } = await supabase.from('employees').update(payload).eq('id', endServiceEmployee.id)
+    if (error) return toast.error(error.message)
+    toast.success('تم تسجيل إنهاء الخدمة')
+    logActivity(employee, 'إنهاء خدمة', 'الموظفين', endServiceEmployee.id, `${endServiceEmployee.name} - ${endServiceForm.type === 'resigned' ? 'استقالة' : 'فصل'}`)
+    setEndServiceModal(false)
+    load()
+  }
+
   function handlePrint() {
     const enrichedData = filtered.map(r => ({
       ...r,
@@ -136,17 +172,34 @@ export default function Employees() {
     const searchMatch = !search || 
       r.name?.toLowerCase().includes(search.toLowerCase()) || 
       r.email?.toLowerCase().includes(search.toLowerCase())
+    const empStatusMatch = !statusFilter || (r.employment_status || 'active') === statusFilter
 
-    return roleMatch && stationMatch && dateMatch && searchMatch
+    return roleMatch && stationMatch && dateMatch && searchMatch && empStatusMatch
   })
 
   const roleColor = { Admin: 'bg-purple-100 text-purple-700', HR: 'bg-blue-100 text-blue-700', Sales: 'bg-emerald-100 text-emerald-700', Accountant: 'bg-amber-100 text-amber-700', Warehouse: 'bg-gray-100 text-gray-700' }
+
+  const handleExport = () => {
+    const data = filtered.map(r => ({
+      'الاسم': r.name,
+      'الإيميل': r.email,
+      'رقم الهاتف': r.phone,
+      'الوظيفة': r.role,
+      'المحطة': stations.find(s => s.id === r.station_id)?.name || 'بدون محطة',
+      'الحالة': r.employment_status || (r.is_active ? 'active' : 'resigned')
+    }))
+    exportToExcel(data, `employees-${new Date().toLocaleDateString()}`, 'الموظفين')
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-gray-800 dark:text-white">{t('employees')}</h1>
         <div className="flex items-center gap-2">
+          <button onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-2 border border-emerald-200 dark:border-emerald-900/50 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+            <Download size={15} /> إكسيل
+          </button>
           <button onClick={handlePrint}
             className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <Printer size={15} /> {isRTL ? 'طباعة القائمة' : 'Print List'}
@@ -159,6 +212,15 @@ export default function Employees() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 p-1 rounded-lg shadow-sm">
+          {[['', 'الكل'], ['active', 'نشط'], ['resigned', 'استقال'], ['terminated', 'فُصل']].map(([val, label]) => (
+            <button key={val} onClick={() => setStatusFilter(val)}
+              className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                statusFilter === val ? 'bg-emerald-600 text-white shadow' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}>{label}</button>
+          ))}
+        </div>
         <div className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 px-3 py-1.5 rounded-lg shadow-sm">
           <span className="text-[10px] font-bold text-gray-400 uppercase">{isRTL ? 'تعيين من' : 'Hired From'}</span>
           <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)}
@@ -247,15 +309,25 @@ export default function Employees() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {r.is_active
-                        ? <span className="flex items-center gap-1 text-xs text-emerald-600"><UserCheck size={13} /> نشط</span>
-                        : <span className="flex items-center gap-1 text-xs text-gray-400"><UserX size={13} /> غير نشط</span>}
+                      {(() => {
+                        const st = r.employment_status || (r.is_active ? 'active' : 'resigned')
+                        const cfg = STATUS_CONFIG[st] || STATUS_CONFIG.active
+                        const Icon = cfg.icon
+                        return (
+                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-bold ${cfg.color}`}>
+                            <Icon size={11} />{cfg.label}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 justify-end">
-                        <button onClick={() => openView(r)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors" title="عرض التفاصيل"><Eye size={14} /></button>
-                        <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-blue-600 transition-colors" title="تعديل"><Pencil size={14} /></button>
-                        <button onClick={() => remove(r.id)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-red-500 transition-colors" title="حذف"><Trash2 size={14} /></button>
+                        <button onClick={() => openView(r)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-gray-500 hover:text-emerald-600 transition-colors" title="عرض التفاصيل"><Eye size={14} /></button>
+                        <button onClick={() => openEdit(r)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-gray-500 hover:text-blue-600 transition-colors" title="تعديل"><Pencil size={14} /></button>
+                        {(r.employment_status || 'active') === 'active' && (
+                          <button onClick={() => openEndService(r)} className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg text-gray-500 hover:text-amber-600 transition-colors" title="إنهاء الخدمة"><UserMinus size={14} /></button>
+                        )}
+                        <button onClick={() => remove(r.id)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors" title="حذف"><Trash2 size={14} /></button>
                       </div>
                     </td>
                   </tr>
@@ -349,7 +421,7 @@ export default function Employees() {
           {customFieldsSchema.map(f => (
             <div key={f.name}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-              <input type={f.type || 'text'} value={form.custom_fields?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_fields: { ...prev.custom_fields, [f.name]: e.target.value } }))}
+              <input type={f.type || 'text'} value={form.custom_data?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.name]: e.target.value } }))}
                 className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
           ))}
@@ -380,7 +452,7 @@ export default function Employees() {
                 <p className="text-sm text-gray-500">نوع الموظف: <span className="font-medium text-gray-800">{viewEmployee.employee_type === 'daily' ? 'يومية' : 'شهري'}</span></p>
                 {viewEmployee.hire_date && <p className="text-sm text-gray-500">تاريخ التعيين: <span className="font-medium text-gray-800">{viewEmployee.hire_date}</span></p>}
                 {customFieldsSchema.map(f => (
-                  <p key={f.name} className="text-sm text-gray-500">{f.label}: <span className="font-medium text-gray-800">{viewEmployee.custom_fields?.[f.name] || '—'}</span></p>
+                  <p key={f.name} className="text-sm text-gray-500">{f.label}: <span className="font-medium text-gray-800">{viewEmployee.custom_data?.[f.name] || '—'}</span></p>
                 ))}
               </div>
             </div>
@@ -425,6 +497,47 @@ export default function Employees() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* End of Service Modal */}
+      <Modal open={endServiceModal} onClose={() => setEndServiceModal(false)} title={`إنهاء خدمة: ${endServiceEmployee?.name}`}>
+        <div className="space-y-4">
+          <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠️ سيتم تغيير حالة الموظف ولن يتمكن من الوصول للنظام. يمكنك إعادة تفعيله لاحقاً من التعديل.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">نوع إنهاء الخدمة</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[['resigned', 'استقالة طوعية', 'text-amber-600'], ['terminated', 'فصل من العمل', 'text-red-600']].map(([val, label, color]) => (
+                <button key={val} onClick={() => setEndServiceForm(f => ({ ...f, type: val }))}
+                  className={`p-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                    endServiceForm.type === val
+                      ? `border-current ${color} bg-gray-50 dark:bg-gray-800`
+                      : 'border-gray-200 dark:border-gray-700 text-gray-500'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">تاريخ إنهاء الخدمة *</label>
+            <input type="date" value={endServiceForm.date} onChange={e => setEndServiceForm(f => ({ ...f, date: e.target.value }))}
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">سبب إنهاء الخدمة</label>
+            <textarea value={endServiceForm.reason} onChange={e => setEndServiceForm(f => ({ ...f, reason: e.target.value }))} rows={3}
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+              placeholder="اذكر سبب إنهاء الخدمة..." />
+          </div>
+          <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+            <button onClick={saveEndService}
+              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm font-bold transition-colors">تأكيد إنهاء الخدمة</button>
+            <button onClick={() => setEndServiceModal(false)}
+              className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">إلغاء</button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

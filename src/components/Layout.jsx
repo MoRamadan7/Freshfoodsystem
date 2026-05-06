@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Clock, UserCheck, Package,
   Handshake, Wallet, Truck, Menu, X, LogOut, Settings,
-  Globe, Building2, FileText, CreditCard, Mic, MicOff, Sun, Moon, User, Activity
+  Globe, Building2, FileText, CreditCard, Mic, MicOff, Sun, Moon, User, Activity, ClipboardList, MessageSquare
 } from 'lucide-react'
 
 function NavItem({ to, icon: Icon, label, end, onClick }) {
@@ -184,7 +184,12 @@ export default function Layout() {
     { to: '/suppliers',    icon: Truck,            label: t('suppliers'),     page: 'suppliers' },
     { to: '/transactions', icon: Wallet,           label: t('transactions'),  page: 'transactions' },
     { to: '/payroll',      icon: CreditCard,       label: t('payroll'),       page: 'payroll' },
-  ].filter(item => normalizedRole !== 'employee' && canAccess(item.page))
+    { to: '/tasks',        icon: ClipboardList,    label: isRTL ? 'المهام' : 'Tasks', page: 'tasks' },
+    { to: '/chat',         icon: MessageSquare,    label: isRTL ? 'التواصل' : 'Chat', page: 'chat' },
+  ].filter(item => normalizedRole !== 'employee' && normalizedRole !== 'labor'
+    ? canAccess(item.page)
+    : item.page === 'tasks' || item.page === 'chat'
+  )
 
   const navItems = ALL_NAV_ITEMS
 
