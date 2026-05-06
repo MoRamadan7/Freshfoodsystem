@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-800 antialiased selection:bg-emerald-200 selection:text-emerald-900 
+           transition-colors duration-300 dark:bg-gray-950 dark:text-gray-100;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm;
+  }
+  
+  .glass-card {
+    @apply bg-white/60 dark:bg-white/5 backdrop-blur-lg border border-white/30 dark:border-white/10 
+           shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] 
+           transition-all duration-300;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { 
+  width: 6px; 
+  height: 6px; 
+}
+::-webkit-scrollbar-track { 
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 10px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: #94a3b8; 
+}
+
+/* Page Transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Staggered Table Rows */
+tbody tr {
+  animation: fadeIn 0.4s ease-out forwards;
+  opacity: 0;
+}
+tbody tr:nth-child(1) { animation-delay: 0.05s; }
+tbody tr:nth-child(2) { animation-delay: 0.1s; }
+tbody tr:nth-child(3) { animation-delay: 0.15s; }
+tbody tr:nth-child(4) { animation-delay: 0.2s; }
+tbody tr:nth-child(5) { animation-delay: 0.25s; }
+tbody tr:nth-child(n+6) { animation-delay: 0.3s; }
+
+/* Animations */
+.animate-fade-in-up {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.05); }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Fix dark mode globally for white containers and tables */
+.dark body {
+  background-color: #030712 !important;
+}
+
+.dark .bg-white, 
+.dark .bg-gray-50, 
+.dark .glass-panel,
+.dark .glass-card {
+  background-color: rgba(17, 24, 39, 0.9) !important;
+  color: #f3f4f6 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Specific Table Dark Mode Fixes */
+.dark table {
+  background-color: transparent !important;
+}
+
+.dark thead {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+}
+
+.dark th {
+  color: #9ca3af !important;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark td {
+  color: #d1d5db !important;
+  border-bottom-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark .divide-y > * {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark tr:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Inputs and interactive elements */
+.dark input, 
+.dark select, 
+.dark textarea {
+  background-color: rgba(31, 41, 46, 0.5) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark input::placeholder {
+  color: #6b7280 !important;
+}
+
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-400,
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: #9ca3af !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Navigation items */
+.dark .hover\:bg-gray-50:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
