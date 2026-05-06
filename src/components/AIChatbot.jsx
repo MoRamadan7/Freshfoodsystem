@@ -46,8 +46,25 @@ export default function AIChatbot() {
       Current User: ${employee?.name} (Role: ${employee?.role})
       Current Stats:
       - Total Clients: ${clientsCount || 0}
-      - Total Products in Stock: ${productsCount || 0}
+      - Total Products: ${productsCount || 0}
       - Total Deals: ${dealsCount || 0}
+      
+      AVAILABLE PAGES & PATHS:
+      - Dashboard (الرئيسية): /
+      - Employees (الموظفين/المناديب): /employees
+      - Attendance (الحضور والانصراف): /attendance
+      - Clients (العملاء): /clients
+      - Products (المنتجات/المخزن): /products
+      - Deals (الصفقات/المبيعات): /deals
+      - Invoices (الفواتير): /invoices
+      - Transactions (الخزنة/الحسابات): /transactions
+      - Payroll (المرتبات): /payroll
+      - Suppliers (الموردين): /suppliers
+      - Settings (الاعدادات): /settings
+      - Profile (الملف الشخصي): /profile
+      - Activity Logs (النشاطات): /activity
+      - Tasks (المهام): /tasks
+      - Chat (التواصل/الشات): /chat
     `;
   }
 
