@@ -124,21 +124,26 @@ export default function Products() {
       const reader = new FileReader()
       reader.readAsDataURL(file)
       reader.onload = async () => {
-        const base64 = reader.result.split(',')[1]
-        const data = await analyzeInvoiceImage(base64, file.type)
-        if (data && data.items?.length > 0) {
-          // For now, let's just pick the first item to fill the form as a demo
-          const item = data.items[0]
-          setForm({
-            ...empty,
-            product_name: item.product_name,
-            stock_quantity: item.quantity,
-            cost_price: item.unit_price,
-            unit: 'kg' // default
-          })
-          setEditing(null)
-          setModal(true)
-          toast.success('تم استخراج البيانات بنجاح!')
+        try {
+          const base64 = reader.result.split(',')[1]
+          const data = await analyzeInvoiceImage(base64, file.type)
+          if (data && data.items && data.items.length > 0) {
+            const item = data.items[0]
+            setForm({
+              ...empty,
+              product_name: item.product_name || '',
+              stock_quantity: item.quantity || 1,
+              cost_price: item.unit_price || 0,
+              unit: 'kg' // default
+            })
+            setEditing(null)
+            setModal(true)
+            toast.success('تم استخراج البيانات بنجاح!')
+          } else {
+             toast.error('لم يتم العثور على منتجات واضحة في الفاتورة')
+          }
+        } catch (err) {
+           toast.error('حدث خطأ أثناء معالجة الصورة')
         }
       }
     } catch (error) {
@@ -210,22 +215,27 @@ export default function Products() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">إجمالي الأصناف</p>
-          <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{rows.length}</p>
+      {rows.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {[...rows].sort((a,b) => b.stock_quantity - a.stock_quantity).slice(0, 4).map(p => {
+            let icon = '📦'
+            if(p.category === 'خضروات' || p.category === 'vegetables') icon = '🥦'
+            else if(p.category === 'فاكهة' || p.category === 'fruits') icon = '🍎'
+            else if(p.category === 'بقوليات' || p.category === 'legumes') icon = '🌾'
+            
+            return (
+            <div key={p.id} className="bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-3 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 text-6xl opacity-5 group-hover:scale-110 transition-transform">{icon}</div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-2xl flex-shrink-0 z-10">{icon}</div>
+              <div className="z-10 min-w-0">
+                <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{p.product_name}</p>
+                <p className="text-lg font-black text-emerald-600">{p.stock_quantity} <span className="text-[10px] text-gray-500 font-normal">{unitLabel[p.unit] || p.unit}</span></p>
+                {p.expiry_date && <p className="text-[10px] text-gray-400 mt-0.5 truncate">{isRTL ? 'صلاحية:' : 'Expiry:'} {p.expiry_date}</p>}
+              </div>
+            </div>
+          )})}
         </div>
-        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">أصناف منخفضة المخزون</p>
-          <p className="text-xl font-bold text-red-500">{rows.filter(r => Number(r.stock_quantity) <= Number(r.reorder_level)).length}</p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">أصناف تقترب من الانتهاء</p>
-          <p className="text-xl font-bold text-amber-500">
-            {rows.filter(r => r.expiry_date && new Date(r.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length}
-          </p>
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">

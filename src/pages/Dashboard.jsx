@@ -59,7 +59,7 @@ export default function Dashboard() {
     const [emp, att, deals, allProducts, txAll, txRecent] = await Promise.all([
       supabase.from('employees').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('attendance').select('id', { count: 'exact', head: true }).eq('date', today).eq('status', 'present'),
-      supabase.from('deals').select('id', { count: 'exact', head: true }).in('status', ['contact', 'negotiation']),
+      supabase.from('deals').select('id, total_amount').in('status', ['contact', 'negotiation']),
       supabase.from('products').select('id,stock_quantity,reorder_level'),
       supabase.from('transactions').select('type,amount,date,station_id').gte('date', fromDate).lte('date', toDate),
       supabase.from('transactions').select('id,date,type,amount,notes').order('created_at', { ascending: false }).limit(5),
@@ -114,10 +114,14 @@ export default function Dashboard() {
       return { name: st.name, revenue: stRev, expense: stExp, net: stRev - stExp }
     })
 
+    const activeDealsList = deals.data ?? []
+    const expectedCol = activeDealsList.reduce((acc, deal) => acc + (Number(deal.total_amount) || 0), 0)
+
     setStats({
       employees: emp.count ?? 0,
       presentToday: att.count ?? 0,
-      activeDeals: deals.count ?? 0,
+      activeDeals: activeDealsList.length,
+      expectedCollections: expectedCol,
       lowStock: lowStockCount,
       monthRevenue: revenue,
       monthExpense: expense,
@@ -268,9 +272,9 @@ export default function Dashboard() {
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm flex flex-col justify-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">{isRTL ? 'كفاءة التشغيل' : 'Operational Efficiency'}</p>
             <div className="flex items-end gap-3">
-              <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">84%</h3>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.employees > 0 ? Math.round((stats.presentToday / stats.employees) * 100) : 0}%</h3>
               <div className="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full mb-2 overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: '84%' }} />
+                <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${stats.employees > 0 ? Math.round((stats.presentToday / stats.employees) * 100) : 0}%` }} />
               </div>
             </div>
             <p className="text-[10px] text-gray-400 mt-2">{isRTL ? 'مؤشر الحضور والإنتاجية' : 'Attendance & Productivity index'}</p>
@@ -278,8 +282,8 @@ export default function Dashboard() {
 
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/5 rounded-2xl p-6 shadow-sm flex flex-col justify-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">{isRTL ? 'توقعات التحصيل' : 'Expected Collections'}</p>
-            <h3 className="text-3xl font-bold text-blue-600">--</h3>
-            <p className="text-[10px] text-gray-400 mt-2">{isRTL ? 'قيمة الفواتير المفتوحة' : 'Open invoices value'}</p>
+            <h3 className="text-3xl font-bold text-blue-600">{formatCurrency(stats.expectedCollections || 0)}</h3>
+            <p className="text-[10px] text-gray-400 mt-2">{isRTL ? 'قيمة الصفقات النشطة المفتوحة' : 'Open deals expected value'}</p>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
 import NotificationBell from './NotificationBell'
+import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, Clock, UserCheck, Package,
   Handshake, Wallet, Truck, Menu, X, LogOut, Settings,
@@ -202,13 +203,21 @@ export default function Layout() {
       const command = event.results[0][0].transcript.toLowerCase()
       setIsListening(false)
       
-      // Simple Voice Navigation Logic
-      if (command.includes('اذهب إلى') || command.includes('go to')) {
-        if (command.includes('الموظفين') || command.includes('employees')) navigate('/employees')
-        if (command.includes('المخزن') || command.includes('products')) navigate('/products')
-        if (command.includes('الفواتير') || command.includes('invoices')) navigate('/invoices')
-        if (command.includes('الرئيسية') || command.includes('dashboard')) navigate('/')
-        if (command.includes('الإعدادات') || command.includes('settings')) navigate('/settings')
+      toast.success(isRTL ? `سمعت: "${command}"` : `Heard: "${command}"`, { icon: '🎙️', duration: 4000 })
+      
+      // Extended Voice Navigation Logic
+      if (command.includes('اذهب') || command.includes('وديني') || command.includes('افتح') || command.includes('هات') || command.includes('go to') || command.includes('open')) {
+        if (command.includes('موظفين') || command.includes('employees')) navigate('/employees')
+        else if (command.includes('مخزن') || command.includes('منتجات') || command.includes('بضاعة') || command.includes('products')) navigate('/products')
+        else if (command.includes('فواتير') || command.includes('invoices')) navigate('/invoices')
+        else if (command.includes('رئيسية') || command.includes('لوحة التحكم') || command.includes('dashboard')) navigate('/')
+        else if (command.includes('إعدادات') || command.includes('settings')) navigate('/settings')
+        else if (command.includes('حضور') || command.includes('انصراف') || command.includes('attendance')) navigate('/attendance')
+        else if (command.includes('عملاء') || command.includes('clients')) navigate('/clients')
+        else if (command.includes('صفقات') || command.includes('deals')) navigate('/deals')
+        else if (command.includes('موردين') || command.includes('suppliers')) navigate('/suppliers')
+        else if (command.includes('خزنة') || command.includes('معاملات') || command.includes('transactions')) navigate('/transactions')
+        else if (command.includes('رواتب') || command.includes('مرتبات') || command.includes('payroll')) navigate('/payroll')
       }
     }
     recognition.onerror = () => setIsListening(false)
@@ -244,7 +253,7 @@ export default function Layout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden bg-gray-50/50 dark:bg-gray-950/50">
-        <header className="glass-panel sticky top-0 z-20 px-4 py-3 flex items-center gap-3 flex-shrink-0 transition-all duration-500 overflow-hidden">
+        <header className="glass-panel sticky top-0 z-20 px-4 py-3 flex items-center gap-3 flex-shrink-0 transition-all duration-500">
           <button onClick={() => setOpen(true)} className="lg:hidden p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-gray-500 hover:scale-105 active:scale-95">
             <Menu size={18} />
           </button>

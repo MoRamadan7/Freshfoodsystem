@@ -211,6 +211,11 @@ export default function Deals() {
 
   async function save() {
     if (!form.client_id) return toast.error('اختار العميل')
+    
+    if (form.status === 'contracted' && (!form.product_id || !form.quantity || Number(form.quantity) <= 0)) {
+      return toast.error('يجب تحديد المنتج المباع والكمية لإتمام التعاقد ولخصم المخزون بشكل سليم')
+    }
+
     setSaving(true)
 
     const payload = {

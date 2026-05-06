@@ -1,5 +1,9 @@
 {
   "appId": "com.freshfood.app",
-  "appName": "Fresh Food",
-  "webDir": "dist"
+  "appName": "FRESH FOOD",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
 }

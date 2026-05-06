@@ -11,21 +11,6 @@ apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
 
 
-implementation platform(libs.compose.bom)
-    implementation libs.activity.compose
-    implementation libs.lifecycle.runtime.ktx
-    implementation libs.material3
-    implementation libs.ui
-    implementation libs.ui.graphics
-    implementation libs.ui.tooling.preview
-    androidTestImplementation platform(libs.compose.bom)
-    androidTestImplementation libs.ui.test.junit4
-    debugImplementation libs.ui.test.manifest
-    debugImplementation libs.ui.tooling
-    implementation libs.core.ktx
-    testImplementation libs.junit
-    androidTestImplementation libs.espresso.core
-    androidTestImplementation libs.ext.junit
 }
 
 

@@ -230,7 +230,7 @@ export default function Attendance() {
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('employee')} *</label>
             <select value={form.employee_id} onChange={e => setForm(f => ({ ...f, employee_id: e.target.value }))}
               className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              <option value="">-- {t('selectStation')} --</option>
+              <option value="">-- {isRTL ? 'اختار الموظف' : 'Select Employee'} --</option>
               {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </div>
