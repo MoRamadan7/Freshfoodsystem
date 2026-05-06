@@ -6,13 +6,13 @@ export const useAuth = () => useContext(AuthContext)
 
 // Role-based page permissions
 export const ROLE_PERMISSIONS = {
-  admin:      ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','settings','activity','profile','tasks'],
-  manager:    ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','activity','profile','tasks'],
-  accountant: ['clients','deals','transactions','invoices','payroll','profile','tasks'],
-  sales:      ['clients','deals','products','invoices','profile','tasks'],
-  hr:         ['employees','attendance','payroll','profile','tasks'],
-  labor:      ['profile','tasks'],
-  employee:   ['profile','tasks'],
+  admin:      ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','settings','activity','profile','tasks','chat'],
+  manager:    ['dashboard','employees','attendance','clients','deals','products','suppliers','transactions','invoices','payroll','activity','profile','tasks','chat'],
+  accountant: ['clients','deals','transactions','invoices','payroll','profile','tasks','chat'],
+  sales:      ['clients','deals','products','invoices','profile','tasks','chat'],
+  hr:         ['employees','attendance','payroll','profile','tasks','chat'],
+  labor:      ['profile','tasks','chat'],
+  employee:   ['profile','tasks','chat'],
 }
 
 export function AuthProvider({ children }) {
