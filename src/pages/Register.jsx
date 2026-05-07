@@ -36,6 +36,7 @@ export default function Register() {
             phone: form.phone,
             role: 'Pending',
             is_active: false,
+            employment_status: 'pending',
             employee_type: 'monthly',
             basic_salary: 0,
             hire_date: new Date().toISOString().split('T')[0]
@@ -49,6 +50,7 @@ export default function Register() {
             phone: form.phone,
             role: 'Pending', 
             is_active: false,
+            employment_status: 'pending',
             employee_type: 'monthly',
             basic_salary: 0,
             hire_date: new Date().toISOString().split('T')[0]

@@ -46,6 +46,7 @@ export default function Login() {
               name: name,
               role: 'Pending',
               is_active: false,
+              employment_status: 'pending',
               employee_type: 'monthly',
               basic_salary: 0,
               hire_date: new Date().toISOString().split('T')[0]
@@ -56,6 +57,7 @@ export default function Login() {
                email: email,
                role: 'Pending',
                is_active: false,
+               employment_status: 'pending',
                employee_type: 'monthly',
                basic_salary: 0,
                hire_date: new Date().toISOString().split('T')[0]

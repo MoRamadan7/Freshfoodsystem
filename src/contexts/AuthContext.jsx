@@ -38,17 +38,19 @@ export function AuthProvider({ children }) {
   const [dynamicRoles, setDynamicRoles] = useState({})
 
   async function fetchEmployee(email, user) {
+    if (!email) return
+    
     let { data: empData } = await supabase.from('employees').select('*').eq('email', email).maybeSingle()
     const { data: setts } = await supabase.from('company_settings').select('*').maybeSingle()
     
     if (!empData && user) {
-      // Auto-create pending employee for first-time OAuth/Google users
-      const { data: newEmp, error } = await supabase.from('employees').insert({
+      // Use UPSERT to prevent race conditions/duplicates
+      const { data: newEmp, error } = await supabase.from('employees').upsert({
         name: user.user_metadata?.full_name || email.split('@')[0],
         email: email,
         role: 'Pending',
         is_active: false
-      }).select().single()
+      }, { onConflict: 'email' }).select().single()
       
       if (!error) empData = newEmp
     }
@@ -57,6 +59,23 @@ export function AuthProvider({ children }) {
     if (setts?.dynamic_roles) {
       setDynamicRoles(setts.dynamic_roles)
     }
+
+    // Subscribe to changes for THIS employee record
+    if (empData) {
+      const channel = supabase.channel(`emp-${empData.id}`)
+        .on('postgres_changes', { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'employees', 
+          filter: `id=eq.${empData.id}` 
+        }, payload => {
+          setEmployee(payload.new)
+        })
+        .subscribe()
+      
+      return () => supabase.removeChannel(channel)
+    }
+
     setLoading(false)
   }
 
@@ -87,8 +106,10 @@ export function AuthProvider({ children }) {
   const permissions = dynamicRoles[normalizedRole] ?? ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS.pending
 
   const canAccess = (page) => {
-    if (!employee?.is_active && normalizedRole !== 'admin') return false
-    if (isAdmin) return true // Admin can access everything
+    // Force active check for everyone (even admins should be active)
+    if (!employee?.is_active) return false
+    
+    if (isAdmin) return true // Active Admin can access everything
     return permissions.includes(page)
   }
 

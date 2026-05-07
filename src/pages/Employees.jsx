@@ -22,6 +22,7 @@ const empty = {
 
 const STATUS_CONFIG = {
   active:     { label: 'نشط',     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', icon: UserCheck },
+  pending:    { label: 'طلب جديد', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',   icon: Clock },
   resigned:   { label: 'استقال', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',   icon: UserMinus },
   terminated: { label: 'فُصل',   color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',           icon: ShieldAlert },
 }
@@ -222,7 +223,7 @@ export default function Employees() {
       <div className="flex flex-wrap items-center gap-2">
         {/* Status Filter Tabs */}
         <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 p-1 rounded-lg shadow-sm">
-          {[['', 'الكل'], ['active', 'نشط'], ['resigned', 'استقال'], ['terminated', 'فُصل']].map(([val, label]) => (
+          {[['', 'الكل'], ['pending', 'طلبات جديدة'], ['active', 'نشط'], ['resigned', 'استقال'], ['terminated', 'فُصل']].map(([val, label]) => (
             <button key={val} onClick={() => setStatusFilter(val)}
               className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
                 statusFilter === val ? 'bg-emerald-600 text-white shadow' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -418,7 +419,17 @@ export default function Employees() {
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">الوظيفة</label>
             <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
               className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              {ROLES.map(r => <option key={r}>{r}</option>)}
+              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">حالة العمل</label>
+            <select value={form.employment_status || 'active'} onChange={e => setForm(f => ({ ...f, employment_status: e.target.value }))}
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              <option value="active">نشط</option>
+              <option value="pending">قيد المراجعة</option>
+              <option value="resigned">استقال</option>
+              <option value="terminated">فُصل</option>
             </select>
           </div>
           <div className="flex items-center gap-2 mt-1 sm:col-span-2">
