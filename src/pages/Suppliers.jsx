@@ -222,6 +222,8 @@ export default function Suppliers() {
             <label className="block text-xs font-medium text-gray-600 mb-1">ملاحظات</label>
             <textarea value={form.notes ?? ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
+          </div>
+
           {/* Advanced Custom Fields */}
           {customFieldsSchema.map(f => (
             <div key={f.id} className={f.type === 'checkbox' ? 'flex items-center gap-2 pt-6' : ''}>
