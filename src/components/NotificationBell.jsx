@@ -159,7 +159,11 @@ export default function NotificationBell() {
   useEffect(() => {
     const unread = notifications.filter(n => !readIds.includes(n.id))
     if (unread.length > prevCount) {
-      const audio = new Audio(settings.notification_sound_url || '/sounds/notification.mp3')
+      // Find the newest unread notification to determine sound type
+      const newest = unread[unread.length - 1]
+      const soundUrl = newest.type === 'task' ? settings.task_sound_url : settings.notification_sound_url
+      
+      const audio = new Audio(soundUrl || '/sounds/notification.mp3')
       audio.play().catch(e => console.log('Audio play blocked by browser policy'))
     }
     setPrevCount(unread.length)

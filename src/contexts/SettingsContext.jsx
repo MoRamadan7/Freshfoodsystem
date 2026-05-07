@@ -40,7 +40,9 @@ const DEFAULT_SETTINGS = {
   gemini_api_key: '',
   announcement_text: '',
   header_layout: 'standard', // 'standard' or 'centered'
-  notification_sound_url: '/sounds/notification.mp3', // Default sound
+  notification_sound_url: '/sounds/notification.mp3', // System alerts
+  chat_sound_url: '/sounds/chat.mp3', // Chat messages
+  task_sound_url: '/sounds/task.mp3', // New tasks
 }
 
 export function SettingsProvider({ children }) {
