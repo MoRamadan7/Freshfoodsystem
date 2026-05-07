@@ -83,31 +83,24 @@ export function SettingsProvider({ children }) {
   const updateSettings = async (newSettings) => {
     setSaving(true)
     try {
-      let result
-      if (settingsId) {
-        result = await supabase
-          .from('company_settings')
-          .update(newSettings)
-          .eq('id', settingsId)
-          .select()
-          .single()
-      } else {
-        result = await supabase
-          .from('company_settings')
-          .insert(newSettings)
-          .select()
-          .single()
-      }
+      // Use UPSERT with ID 1 to ensure only ONE settings row exists
+      const { data, error } = await supabase
+        .from('company_settings')
+        .upsert({ ...newSettings, id: 1 })
+        .select()
+        .single()
 
-      if (result.error) throw result.error
-
-      setSettings(prev => ({ ...prev, ...result.data }))
-      setSettingsId(result.data.id)
-      if (result.data.gemini_api_key) initAI(result.data.gemini_api_key)
+      if (error) throw error
+      
+      setSettings({ ...DEFAULT_SETTINGS, ...data })
+      setSettingsId(data.id)
+      if (data.gemini_api_key) initAI(data.gemini_api_key)
+      toast.success('تم حفظ الإعدادات بنجاح')
       return { success: true }
     } catch (err) {
-      console.error('Settings update error:', err)
-      return { success: false, error: err.message }
+      console.error('Update settings error:', err)
+      toast.error('فشل حفظ الإعدادات: ' + err.message)
+      return { success: false, error: err }
     } finally {
       setSaving(false)
     }
