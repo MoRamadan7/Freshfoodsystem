@@ -152,6 +152,24 @@ export default function Profile() {
 
   if (!profile) return null
 
+  if (employee?.role?.toLowerCase() === 'pending') {
+    return (
+      <div className="max-w-2xl mx-auto mt-20 text-center p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800 animate-fade-in">
+        <div className="w-24 h-24 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+          <Clock size={48} />
+        </div>
+        <h1 className="text-3xl font-black text-gray-800 dark:text-gray-100 mb-4">أهلاً بك في فريش فود!</h1>
+        <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-8">
+          حسابك حالياً في انتظار مراجعة الإدارة. <br/>
+          بمجرد الموافقة على طلب انضمامك، ستتمكن من الوصول لجميع أقسام النظام.
+        </p>
+        <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl text-sm text-gray-500 dark:text-gray-400">
+          يمكنك التواصل مع المدير لتسريع عملية التفعيل.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header Profile Card */}

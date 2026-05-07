@@ -5,6 +5,7 @@ import { SettingsProvider } from './contexts/SettingsContext'
 import { LangProvider, useLang } from './contexts/LangContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
 import Attendance from './pages/Attendance'
@@ -22,9 +23,10 @@ import Tasks from './pages/Tasks'
 import Chat from './pages/Chat'
 import AIChatbot from './components/AIChatbot'
 import ClientPortal from './pages/ClientPortal'
+import PendingApproval from './pages/PendingApproval'
 
 function PrivateRoute({ children, page }) {
-  const { user, loading, canAccess } = useAuth()
+  const { user, loading, canAccess, employee, isAdmin } = useAuth()
   const { t, isRTL } = useLang()
 
   if (loading) return (
@@ -38,10 +40,9 @@ function PrivateRoute({ children, page }) {
   
   if (!user) return <Navigate to="/login" />
   
-  // Pending users can ONLY access profile (to view status) or specific pending page
-  const { normalizedRole } = useAuth()
-  if (normalizedRole === 'pending' && page !== 'profile') {
-    return <Navigate to="/profile" replace />
+  // Strict active check: If not active and not super admin, go to pending
+  if (!employee?.is_active && !isAdmin) {
+    if (window.location.pathname !== '/pending') return <Navigate to="/pending" replace />
   }
 
   if (page && !canAccess(page)) return <Navigate to="/profile" replace />
@@ -51,10 +52,11 @@ function PrivateRoute({ children, page }) {
 
 function AppContent() {
   const { isRTL } = useLang()
-  const { normalizedRole } = useAuth()
+  const { normalizedRole, employee, isAdmin } = useAuth()
 
   // Helper to redirect roles
   const RoleRedirect = ({ roles, children }) => {
+    if (!employee?.is_active && !isAdmin) return <Navigate to="/pending" replace />
     return roles.includes(normalizedRole) ? children : <Navigate to="/profile" replace />
   }
 
@@ -74,7 +76,9 @@ function AppContent() {
       />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/portal" element={<ClientPortal />} />
+        <Route path="/pending" element={<PendingApproval />} />
         
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={

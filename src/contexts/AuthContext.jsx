@@ -12,6 +12,7 @@ export const ROLE_PERMISSIONS = {
   sales:      ['clients','deals','products','invoices','profile','tasks','chat'],
   hr:         ['employees','attendance','payroll','profile','tasks','chat'],
   labor:      ['profile','tasks','chat'],
+  pending:    [],
   employee:   ['profile','tasks','chat'],
 }
 
@@ -23,12 +24,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchEmployee(session.user.email)
+      if (session?.user) fetchEmployee(session.user.email, session.user)
       else setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchEmployee(session.user.email)
+      if (session?.user) fetchEmployee(session.user.email, session.user)
       else { setEmployee(null); setLoading(false) }
     })
     return () => subscription.unsubscribe()
@@ -36,10 +37,22 @@ export function AuthProvider({ children }) {
 
   const [dynamicRoles, setDynamicRoles] = useState({})
 
-  async function fetchEmployee(email) {
-    const { data: empData } = await supabase.from('employees').select('*').eq('email', email).single()
-    const { data: setts } = await supabase.from('settings').select('*').single()
+  async function fetchEmployee(email, user) {
+    let { data: empData } = await supabase.from('employees').select('*').eq('email', email).maybeSingle()
+    const { data: setts } = await supabase.from('settings').select('*').maybeSingle()
     
+    if (!empData && user) {
+      // Auto-create pending employee for first-time OAuth/Google users
+      const { data: newEmp, error } = await supabase.from('employees').insert({
+        name: user.user_metadata?.full_name || email.split('@')[0],
+        email: email,
+        role: 'Pending',
+        is_active: false
+      }).select().single()
+      
+      if (!error) empData = newEmp
+    }
+
     setEmployee(empData)
     if (setts?.dynamic_roles) {
       setDynamicRoles(setts.dynamic_roles)
@@ -49,7 +62,7 @@ export function AuthProvider({ children }) {
 
   // Normalize role to lowercase english key or keep dynamic
   const getNormalizedRole = (emp) => {
-    if (!emp?.role) return 'employee'
+    if (!emp?.role) return 'pending'
     const roleMap = {
       'admin': 'admin', 'مدير': 'admin', 'مدير النظام (admin)': 'admin', 'مدير النظام (Admin)': 'admin',
       'manager': 'manager', 'مشرف': 'manager', 'مدير عام (manager)': 'manager', 'مدير عام (Manager)': 'manager',
@@ -58,21 +71,23 @@ export function AuthProvider({ children }) {
       'hr': 'hr', 'موارد بشرية': 'hr', 'موارد بشرية (hr)': 'hr', 'موارد بشرية (HR)': 'hr',
       'labor': 'labor', 'عامل': 'labor', 'فني / عامل (labor)': 'labor', 'فني / عامل (Labor)': 'labor',
       'employee': 'employee', 'موظف': 'employee', 'موظف (employee)': 'employee', 'موظف (Employee)': 'employee',
-      'pending': 'pending'
+      'pending': 'pending', 'قيد الانتظار': 'pending'
     }
     const raw = emp.role
     const lower = raw.toLowerCase()
     
     if (dynamicRoles[raw]) return raw // It's a custom dynamic role
     
-    return roleMap[lower] || 'employee'
+    return roleMap[lower] || 'pending'
   }
 
   const normalizedRole = getNormalizedRole(employee)
   const isAdmin = normalizedRole === 'admin'
-  const permissions = dynamicRoles[normalizedRole] ?? ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS.employee
+  const isPending = normalizedRole === 'pending' || !employee?.is_active
+  const permissions = dynamicRoles[normalizedRole] ?? ROLE_PERMISSIONS[normalizedRole] ?? ROLE_PERMISSIONS.pending
 
   const canAccess = (page) => {
+    if (!employee?.is_active && normalizedRole !== 'admin') return false
     if (isAdmin) return true // Admin can access everything
     return permissions.includes(page)
   }

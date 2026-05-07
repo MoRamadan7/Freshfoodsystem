@@ -27,7 +27,6 @@ export default function Register() {
       // 2. Add employee record with Pending role
       if (data.user) {
         const { error: dbError } = await supabase.from('employees').insert({
-          id: data.user.id, // Ensure your employees table uses UUID or triggers link them
           name: form.name,
           email: form.email,
           phone: form.phone,
@@ -35,20 +34,7 @@ export default function Register() {
           is_active: false
         })
         
-        // Note: If your employees table uses integer ID, you might need a different approach.
-        // For this ERP, we typically match auth.users to an employees table. 
-        // Assuming employees table auto-increments and we just insert by email.
-        if (dbError) {
-           // If it fails on ID, it means the ID is integer. Let's let the DB generate it.
-           const { error: fallbackError } = await supabase.from('employees').insert({
-             name: form.name,
-             email: form.email,
-             phone: form.phone,
-             role: 'Pending',
-             is_active: false
-           })
-           if (fallbackError) throw fallbackError
-        }
+        if (dbError) throw dbError
       }
 
       toast.success('تم التسجيل بنجاح! بانتظار موافقة الإدارة.')

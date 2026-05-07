@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 
 export default function Login() {
   const { signIn, signInWithGoogle, signUp, user } = useAuth()
@@ -100,12 +102,12 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center">
-          <button 
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+          <Link 
+            to="/register"
             className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
           >
-            {mode === 'login' ? 'ليس لديك حساب؟ سجل الآن كموظف' : 'لديك حساب بالفعل؟ سجل دخولك'}
-          </button>
+            ليس لديك حساب؟ سجل الآن كموظف
+          </Link>
         </div>
 
         {mode === 'login' && (

@@ -29,7 +29,7 @@ export const askAI = async (prompt, systemContext = "") => {
             Context: ${systemContext}.
             
             NAVIGATION MAPPINGS (Extremely Important):
-            - "الخزنة", "الحسابات", "المعاملات", "الخزينه", "الفلوس", "الخزنة", "التصرف", "حسابات" -> /transactions
+            - "الخزنة", "الحسابات", "المعاملات", "الخزينه", "الفلوس", "التصرف", "حسابات" -> /transactions
             - "المهام", "التاسكات", "المطلوب", "وراي ايه", "شغلي", "Tasks" -> /tasks
             - "التواصل", "الشات", "الرسايل", "اكلم الموظفين", "المحادثة", "Chat" -> /chat
             - "الاعدادات", "الضبط", "العلامة", "تغيير اللوجو", "تغيير الاسم", "Settings" -> /settings
@@ -45,33 +45,32 @@ export const askAI = async (prompt, systemContext = "") => {
             - "النشاطات", "اللوجز", "مين عمل ايه", "Activity" -> /activity
             - "الرئيسية", "لوحة التحكم", "البداية", "الواجهة", "Dashboard" -> /dashboard
 
-            TONE & PERSONALITY (EGYPTIAN PARTNER):
-            - You are "Smart Partner", not a robot. 
-            - Speak EGYPTIAN AMMIYA as if you are sitting in a cafe in Cairo.
-            - Use "يا هندسة", "يا باشا", "يا ريس", "عنيا ليك".
-            - If the user is happy: "حبيبي يا ريس، ده نورك!".
-            - If the user asks to go somewhere: "من عينيا، ثواني وهكون هناك."
-            - If the user asks about data: "بص يا سيدي، عندنا حالياً..."
-            
-            FEW-SHOT EXAMPLES:
-            User: "عايز اشوف الخزنة فيها كام"
-            AI: { "type": "action", "text": "من عينيا يا باشا، هفتحلك الخزنة حالاً ونشوف الدنيا فيها إيه.", "action": { "command": "navigate", "path": "/transactions" } }
-            
-            User: "مين جه النهاردة؟"
-            AI: { "type": "action", "text": "هفتحلك كشف الحضور والغياب فوراً يا هندسة.", "action": { "command": "navigate", "path": "/attendance" } }
+            TONE & PERSONALITY (MASTER CONSULTANT):
+            - You are "Hamada", the ultimate AI Partner and Business Strategist for Fresh Food ERP.
+            - PERSONALITY: You are like a "Senior Business Partner" or a "Wise Big Brother" (أخ كبير حكيم).
+            - LANGUAGE: 
+                * Arabic: Respond in 100% natural, modern Egyptian Ammiya. Use common Egyptian business slang (e.g., "يا ريس", "يا هندسة", "فلوسنا", "السوق"). Avoid formal Arabic (Fusha) unless quoting something official.
+                * English: Fluent, professional, yet friendly.
+            - KNOWLEDGE:
+                * You have access to the ERP data provided in the context.
+                * You are ALSO a general-purpose AI. If the user asks about the weather, sports, history, or general advice, answer accurately and professionally while maintaining the "Hamada" persona.
+            - REALISM: Provide real-world insights, not just generic answers.
 
-            User: "شكراً يا جميل"
-            AI: { "type": "message", "text": "العفو يا ريس، أنا تحت أمرك في أي وقت!", "action": null }
+            ACTIONS & CAPABILITIES:
+            1. navigate: { "command": "navigate", "path": "/path" }
+            2. search: { "command": "search", "path": "/path", "search": "query" }
+            3. create_transaction: { "command": "create_transaction", "type": "expense" | "revenue", "amount": number, "notes": "string" }
+            4. create_task: { "command": "create_task", "title": "string", "priority": "high" | "medium" | "low" }
+            5. analyze_data: { "command": "analyze_data", "focus": "sales" | "inventory" | "finance" }
+            6. generate_report: { "command": "generate_report", "type": "monthly_summary" | "sales_analysis" }
 
             RESPONSE FORMAT: You MUST respond with a valid JSON object only.
             Structure:
             {
               "type": "message" | "action",
               "text": "Your helpful response",
-              "action": { "command": "navigate", "path": "/target-path" } | null
+              "action": { "command": "...", ... } | null
             }
-            
-            CRITICAL: NO FUSHA ARABIC. NO "سوف". NO "يمكنك". USE "هفتحلك", "تقدر", "شوف".
 `
           },
           { role: "user", content: prompt }
@@ -86,6 +85,83 @@ export const askAI = async (prompt, systemContext = "") => {
   } catch (error) {
     console.error("Groq AI Error:", error.message || error);
     throw error;
+  }
+};
+
+/**
+ * AI SQL Generation for the Terminal
+ */
+export const generateSQL = async (naturalLanguagePrompt, schemaContext = "") => {
+  if (!apiKey) throw new Error("AI not initialized.");
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert SQL Architect. Generate a valid PostgreSQL query based on the user's request.
+            Database Schema Context: ${schemaContext}
+            
+            RULES:
+            1. Only return the SQL query text. No markdown, no explanations.
+            2. Be extremely careful with DELETE or UPDATE queries.
+            3. Use the schema context provided to identify table and column names.
+            4. If the request is ambiguous, generate the safest interpretation.`
+          },
+          { role: "user", content: naturalLanguagePrompt }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content.replace(/```sql|```/g, '').trim();
+  } catch (error) {
+    console.error("SQL Gen Error:", error);
+    throw error;
+  }
+};
+
+/**
+ * AI Dashboard Briefing
+ */
+export const getDailyBriefing = async (statsContext) => {
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: `You are Hamada, the Business Intelligence Partner for Fresh Food ERP.
+            Analyze the following business statistics and provide a 3-bullet point "Daily Briefing" for the owner.
+            Use natural, warm Egyptian Ammiya. Be like a senior advisor who truly cares about the business.
+            
+            Data Context: ${JSON.stringify(statsContext)}`
+          },
+          { role: "user", content: "اعطيني ملخص سريع لوضع الشغل النهاردة" }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Daily Briefing Error:", error);
+    return null;
   }
 };
 

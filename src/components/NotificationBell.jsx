@@ -147,11 +147,23 @@ export default function NotificationBell() {
     setNotifications(items)
   }, [settings, t, normalizedRole])
 
+  const [prevCount, setPrevCount] = useState(0)
+
   useEffect(() => {
     buildNotifications()
-    const interval = setInterval(buildNotifications, 30000) // refresh every 30s for more reactivity
+    const interval = setInterval(buildNotifications, 30000) 
     return () => clearInterval(interval)
   }, [buildNotifications])
+
+  // Play sound when new notifications arrive
+  useEffect(() => {
+    const unread = notifications.filter(n => !readIds.includes(n.id))
+    if (unread.length > prevCount) {
+      const audio = new Audio(settings.notification_sound_url || '/sounds/notification.mp3')
+      audio.play().catch(e => console.log('Audio play blocked by browser policy'))
+    }
+    setPrevCount(unread.length)
+  }, [notifications, readIds, settings.notification_sound_url])
 
   const unreadCount = notifications.filter(n => !readIds.includes(n.id)).length
 

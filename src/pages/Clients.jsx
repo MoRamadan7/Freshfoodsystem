@@ -95,6 +95,14 @@ export default function Clients() {
 
   async function save() {
     if (!form.client_name) return toast.error('اسم العميل مطلوب')
+    
+    // Custom Fields Validation
+    for (const f of customFieldsSchema) {
+      if (f.required && !form.custom_data?.[f.id]) {
+        return toast.error(`${isRTL ? 'حقل' : 'Field'} ${isRTL ? f.label_ar : f.label_en} ${isRTL ? 'مطلوب' : 'is required'}`)
+      }
+    }
+
     setSaving(true)
     // Strip virtual fields before saving (assigned_sales is computed, not a real column)
     const { assigned_sales, ...formData } = form
@@ -302,11 +310,46 @@ export default function Clients() {
             <textarea value={form.notes ?? ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
           </div>
+          {/* Advanced Custom Fields */}
           {customFieldsSchema.map(f => (
-            <div key={f.name}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-              <input type={f.type || 'text'} value={form.custom_data?.[f.name] || ''} onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.name]: e.target.value } }))}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            <div key={f.id} className={f.type === 'checkbox' ? 'flex items-center gap-2 pt-6' : ''}>
+              {f.type !== 'checkbox' && (
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  {isRTL ? f.label_ar : f.label_en} {f.required && <span className="text-red-500">*</span>}
+                </label>
+              )}
+              
+              {f.type === 'select' ? (
+                <select 
+                  value={form.custom_data?.[f.id] || ''} 
+                  onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.id]: e.target.value } }))}
+                  className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  <option value="">{isRTL ? 'اختار...' : 'Select...'}</option>
+                  {f.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              ) : f.type === 'checkbox' ? (
+                <>
+                  <input 
+                    type="checkbox" 
+                    id={`field_${f.id}`}
+                    checked={!!form.custom_data?.[f.id]} 
+                    onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.id]: e.target.checked } }))}
+                    className="w-4 h-4 accent-emerald-600 rounded" 
+                  />
+                  <label htmlFor={`field_${f.id}`} className="text-sm text-gray-700 dark:text-gray-300">
+                    {isRTL ? f.label_ar : f.label_en}
+                  </label>
+                </>
+              ) : (
+                <input 
+                  type={f.type || 'text'} 
+                  value={form.custom_data?.[f.id] || ''} 
+                  onChange={e => setForm(prev => ({ ...prev, custom_data: { ...prev.custom_data, [f.id]: e.target.value } }))}
+                  placeholder={isRTL ? f.label_ar : f.label_en}
+                  className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" 
+                />
+              )}
             </div>
           ))}
         </div>

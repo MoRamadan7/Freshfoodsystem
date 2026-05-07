@@ -5,7 +5,7 @@ import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
 import { Users, UserCheck, TrendingUp, Package, AlertTriangle, Wallet, Sparkles, FileText, Download, Loader2 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts'
-import { askAI } from '../lib/ai'
+import { askAI, getDailyBriefing } from '../lib/ai'
 import { generateReportHTML } from '../lib/reportTemplate'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
@@ -50,10 +50,14 @@ export default function Dashboard() {
   const [exporting, setExporting] = useState(false)
   const [fromDate, setFromDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0])
+  
+  const [aiBriefing, setAiBriefing] = useState('')
+  const [loadingBriefing, setLoadingBriefing] = useState(false)
 
   useEffect(() => { loadAll() }, [lang, fromDate, toDate])
 
   async function loadAll() {
+    setLoadingBriefing(true)
     const today = new Date().toISOString().split('T')[0]
 
     const [emp, att, deals, allProducts, txAll, txRecent] = await Promise.all([
@@ -75,6 +79,27 @@ export default function Dashboard() {
       if (tx.type === 'revenue') revenue += val
       else expense += val
     })
+
+    const newStats = {
+      employees: emp.count ?? 0,
+      presentToday: att.count ?? 0,
+      activeDeals: (deals.data ?? []).length,
+      expectedCollections: (deals.data ?? []).reduce((acc, d) => acc + (Number(d.total_amount) || 0), 0),
+      lowStock: lowStockCount,
+      monthRevenue: revenue,
+      monthExpense: expense,
+      netBalance: revenue - expense
+    }
+
+    setStats(newStats)
+    setRecentTx(txRecent.data ?? [])
+
+    // Get AI Briefing
+    if (settings.gemini_api_key) {
+      getDailyBriefing(newStats).then(setAiBriefing).finally(() => setLoadingBriefing(false))
+    } else {
+      setLoadingBriefing(false)
+    }
 
     const locale = lang === 'ar' ? 'ar-EG' : 'en-US'
     const revKey = t('revenue')
@@ -114,20 +139,6 @@ export default function Dashboard() {
       return { name: st.name, revenue: stRev, expense: stExp, net: stRev - stExp }
     })
 
-    const activeDealsList = deals.data ?? []
-    const expectedCol = activeDealsList.reduce((acc, deal) => acc + (Number(deal.total_amount) || 0), 0)
-
-    setStats({
-      employees: emp.count ?? 0,
-      presentToday: att.count ?? 0,
-      activeDeals: activeDealsList.length,
-      expectedCollections: expectedCol,
-      lowStock: lowStockCount,
-      monthRevenue: revenue,
-      monthExpense: expense,
-      netBalance: revenue - expense // Net for selected period
-    })
-    setRecentTx(txRecent.data ?? [])
     setChartData(months)
     setStationStats(comparison)
 
@@ -174,7 +185,6 @@ export default function Dashboard() {
         icon: '💡',
         duration: 6000
       })
-      // Show in a more elegant way if possible, but alert is fine for now as requested or I'll use a modal later.
       alert('--- ' + (isRTL ? 'توصيات الذكاء الاصطناعي للمدير' : 'AI Business Recommendations') + ' ---\n\n' + response)
     } catch (error) {
       toast.error('فشل في تحليل البيانات')
@@ -253,6 +263,33 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* AI Daily Briefing */}
+      {settings.gemini_api_key && (isAdmin || normalizedRole === 'manager') && (
+        <div className="bg-gradient-to-r from-emerald-600/10 to-blue-600/10 border border-emerald-500/20 rounded-3xl p-6 relative overflow-hidden animate-fade-in group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+            <Sparkles size={120} className="text-emerald-500" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                <Sparkles size={16} />
+              </div>
+              <h2 className="font-bold text-emerald-800 dark:text-emerald-400">{isRTL ? 'موجز حمادة الذكي' : "Hamada's Smart Briefing"}</h2>
+              {loadingBriefing && <Loader2 size={14} className="animate-spin text-emerald-500" />}
+            </div>
+            {aiBriefing ? (
+              <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line bg-white/50 dark:bg-black/20 p-4 rounded-2xl backdrop-blur-sm border border-white/20">
+                {aiBriefing}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 text-gray-400 py-2">
+                <div className="w-full h-4 bg-gray-100 dark:bg-white/5 rounded-full animate-pulse" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Manager Specific Highlights */}
       {(isAdmin || normalizedRole === 'manager') && (

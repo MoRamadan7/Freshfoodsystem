@@ -4,7 +4,7 @@ import { logActivity } from '../lib/logger'
 import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
-import { initAI } from '../lib/ai'
+import { initAI, generateSQL } from '../lib/ai'
 import toast from 'react-hot-toast'
 import {
   Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key
@@ -60,6 +60,17 @@ export default function Settings() {
   const sidebarFileInputRef = useRef(null)
   const stampFileInputRef = useRef(null)
   const watermarkFileInputRef = useRef(null)
+  const soundFileInputRef = useRef(null)
+
+  // AI SQL Gen State
+  const [naturalSqlPrompt, setNaturalSqlPrompt] = useState('')
+  const [generatingSql, setGeneratingSql] = useState(false)
+
+  // Advanced Fields State
+  const [fieldModal, setFieldModal] = useState(false)
+  const [fieldTargetEntity, setFieldTargetEntity] = useState('clients')
+  const [fieldForm, setFieldForm] = useState({ id: '', label_ar: '', label_en: '', type: 'text', required: false, options: '' })
+  const [editingFieldIndex, setEditingFieldIndex] = useState(null)
 
   useEffect(() => { loadStations() }, [])
 
@@ -237,8 +248,8 @@ export default function Settings() {
           {activeTab === 'custom_fields' && isManagerOrAdmin && (
             <div className="space-y-6 animate-fade-in">
               <div className="mb-4">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">الحقول الإضافية (Custom Fields)</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">إضافة حقول بيانات جديدة للعملاء، الموردين، أو الموظفين بدون تعديل برمجي.</p>
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">الحقول الإضافية المتقدمة</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">إضافة حقول بيانات احترافية (نصوص، أرقام، تواريخ) مع دعم اللغتين والتحقق من البيانات.</p>
               </div>
 
               {['clients', 'suppliers', 'employees'].map(entity => {
@@ -246,43 +257,68 @@ export default function Settings() {
                 const schema = form.custom_fields_schema || {}
                 const fields = schema[entity] || []
 
-                const addField = () => {
-                  const newName = window.prompt('أدخل المعرف البرمجي للحقل بالإنجليزية (مثال: tax_number):')
-                  if (!newName) return
-                  if (!/^[a-zA-Z0-9_]+$/.test(newName)) return toast.error('يجب أن يحتوي المعرف على حروف إنجليزية وأرقام فقط')
-                  const newLabel = window.prompt('أدخل اسم الحقل ليظهر للمستخدمين (مثال: الرقم الضريبي):')
-                  if (!newLabel) return
-                  const newSchema = { ...schema, [entity]: [...fields, { name: newName, label: newLabel, type: 'text' }] }
-                  setForm(prev => ({ ...prev, custom_fields_schema: newSchema }))
+                const openFieldModal = (f = null, index = null) => {
+                  setFieldTargetEntity(entity)
+                  if (f) {
+                    setFieldForm({ ...f, options: f.options?.join(', ') || '' })
+                    setEditingFieldIndex(index)
+                  } else {
+                    setFieldForm({ id: '', label_ar: '', label_en: '', type: 'text', required: false, options: '' })
+                    setEditingFieldIndex(null)
+                  }
+                  setFieldModal(true)
                 }
 
-                const removeField = (nameToRemove) => {
+                const removeField = (index) => {
                   if (!confirm('هل أنت متأكد من حذف هذا الحقل؟ سيؤدي هذا لإخفائه من النظام.')) return
-                  const newSchema = { ...schema, [entity]: fields.filter(f => f.name !== nameToRemove) }
+                  const newFields = [...fields]
+                  newFields.splice(index, 1)
+                  const newSchema = { ...schema, [entity]: newFields }
                   setForm(prev => ({ ...prev, custom_fields_schema: newSchema }))
                 }
 
                 return (
-                  <div key={entity} className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-bold text-gray-700 dark:text-gray-200">حقول {entityLabels[entity]}</h4>
-                      <button onClick={addField} className="text-xs bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-lg hover:bg-emerald-200 transition-colors flex items-center gap-1">
+                  <div key={entity} className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-gray-200 dark:border-white/10">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600">
+                          <ListPlus size={16} />
+                        </div>
+                        <h4 className="font-bold text-gray-700 dark:text-gray-200">حقول {entityLabels[entity]}</h4>
+                      </div>
+                      <button onClick={() => openFieldModal()} className="text-xs bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700 transition-all flex items-center gap-1 shadow-sm shadow-emerald-500/10">
                         <Plus size={14} /> إضافة حقل
                       </button>
                     </div>
                     {fields.length === 0 ? (
-                      <p className="text-sm text-gray-400">لا توجد حقول إضافية.</p>
+                      <div className="text-center py-6 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-xl">
+                        <p className="text-xs text-gray-400">لا توجد حقول مخصصة لهذا القسم.</p>
+                      </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {fields.map(f => (
-                          <div key={f.name} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 px-3 py-2 rounded-lg">
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{f.label}</span>
-                              <span className="text-[10px] text-gray-400">{f.name}</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {fields.map((f, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-100 dark:border-white/10 px-4 py-3 rounded-xl hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all group">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gray-50 dark:bg-white/5 rounded-lg text-gray-400">
+                                {f.type === 'number' ? <Calculator size={14} /> : f.type === 'date' ? <MapPin size={14} /> : <FileText size={14} />}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{isRTL ? f.label_ar : f.label_en}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-gray-400 font-mono">{f.id}</span>
+                                  <span className="text-[10px] bg-gray-100 dark:bg-white/5 px-1.5 py-0.5 rounded text-gray-500">{f.type}</span>
+                                  {f.required && <span className="text-[10px] text-red-500 font-bold">مطلوب</span>}
+                                </div>
+                              </div>
                             </div>
-                            <button onClick={() => removeField(f.name)} className="text-gray-400 hover:text-red-500">
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => openFieldModal(f, idx)} className="p-1.5 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg">
+                                <Pencil size={14} />
+                              </button>
+                              <button onClick={() => removeField(idx)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -290,6 +326,107 @@ export default function Settings() {
                   </div>
                 )
               })}
+
+              <Modal open={fieldModal} onClose={() => setFieldModal(false)} title={editingFieldIndex !== null ? 'تعديل حقل' : 'إضافة حقل جديد'}>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 mb-1">المعرف البرمجي (ID) - إنجليزي فقط</label>
+                      <input 
+                        disabled={editingFieldIndex !== null}
+                        value={fieldForm.id} 
+                        onChange={e => setFieldForm(p => ({ ...p, id: e.target.value.toLowerCase().replace(/\s/g, '_') }))}
+                        placeholder="e.g. passport_number"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all disabled:opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">الاسم بالعربي</label>
+                      <input 
+                        value={fieldForm.label_ar} 
+                        onChange={e => setFieldForm(p => ({ ...p, label_ar: e.target.value }))}
+                        placeholder="مثلاً: رقم الجواز"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">الاسم بالإنجليزي</label>
+                      <input 
+                        value={fieldForm.label_en} 
+                        onChange={e => setFieldForm(p => ({ ...p, label_en: e.target.value }))}
+                        placeholder="e.g. Passport Number"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 mb-1">نوع الحقل</label>
+                      <select 
+                        value={fieldForm.type} 
+                        onChange={e => setFieldForm(p => ({ ...p, type: e.target.value }))}
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                      >
+                        <option value="text">نص (Text)</option>
+                        <option value="number">رقم (Number)</option>
+                        <option value="date">تاريخ (Date)</option>
+                        <option value="select">قائمة اختيارات (Select)</option>
+                        <option value="checkbox">خانة اختيار (Checkbox)</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2 pt-6">
+                      <input 
+                        type="checkbox" 
+                        id="field_required"
+                        checked={fieldForm.required} 
+                        onChange={e => setFieldForm(p => ({ ...p, required: e.target.checked }))}
+                        className="w-4 h-4 accent-emerald-500"
+                      />
+                      <label htmlFor="field_required" className="text-sm font-medium text-gray-700 dark:text-gray-300">حقل مطلوب</label>
+                    </div>
+                  </div>
+
+                  {fieldForm.type === 'select' && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-bold text-gray-500 mb-1">الخيارات (افصل بينها بفاصلة)</label>
+                      <textarea 
+                        value={fieldForm.options} 
+                        onChange={e => setFieldForm(p => ({ ...p, options: e.target.value }))}
+                        placeholder="خيار 1, خيار 2, خيار 3"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all h-20"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 pt-4">
+                    <button 
+                      onClick={() => {
+                        if (!fieldForm.id || !fieldForm.label_ar) return toast.error('المعرف والاسم العربي مطلوبين')
+                        const schema = form.custom_fields_schema || {}
+                        const fields = schema[fieldTargetEntity] || []
+                        const finalField = {
+                          ...fieldForm,
+                          options: fieldForm.type === 'select' ? fieldForm.options.split(',').map(s => s.trim()).filter(Boolean) : null
+                        }
+                        
+                        let newFields
+                        if (editingFieldIndex !== null) {
+                          newFields = [...fields]
+                          newFields[editingFieldIndex] = finalField
+                        } else {
+                          if (fields.some(f => f.id === fieldForm.id)) return toast.error('هذا المعرف مستخدم بالفعل')
+                          newFields = [...fields, finalField]
+                        }
+                        
+                        setForm(p => ({ ...p, custom_fields_schema: { ...schema, [fieldTargetEntity]: newFields } }))
+                        setFieldModal(false)
+                      }}
+                      className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all"
+                    >
+                      حفظ الحقل
+                    </button>
+                    <button onClick={() => setFieldModal(false)} className="px-6 py-3 border border-gray-200 dark:border-white/10 rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 font-bold transition-all">إلغاء</button>
+                  </div>
+                </div>
+              </Modal>
             </div>
           )}
 
@@ -765,6 +902,38 @@ export default function Settings() {
                     <Terminal size={20} />
                     <h3>SQL Console (Super Admin)</h3>
                   </div>
+                  
+                  {/* AI SQL Assistant (NEW) */}
+                  <div className="flex items-center gap-2 flex-1 mx-8">
+                    <input 
+                      value={naturalSqlPrompt}
+                      onChange={e => setNaturalSqlPrompt(e.target.value)}
+                      placeholder="أوصف اللي عايز تعمله بالعربي (مثلاً: هات آخر 5 موظفين)"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-gray-300 focus:ring-1 focus:ring-emerald-500 outline-none"
+                    />
+                    <button 
+                      onClick={async () => {
+                        if (!naturalSqlPrompt.trim()) return
+                        setGeneratingSql(true)
+                        try {
+                          const schema = "Tables: employees(id, name, email, role, is_active), clients(id, name, email, phone), suppliers(id, name), products(id, name, stock_quantity), transactions(id, type, amount, date), deals(id, status, total_amount), attendance(id, date, status)"
+                          const sql = await generateSQL(naturalSqlPrompt, schema)
+                          setSqlQuery(sql)
+                          toast.success('تم توليد الكود بنجاح')
+                        } catch (e) {
+                          toast.error('فشل توليد الكود')
+                        } finally {
+                          setGeneratingSql(false)
+                        }
+                      }}
+                      disabled={generatingSql}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-[10px] font-bold flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {generatingSql ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles size={12} />}
+                      AI SQL
+                    </button>
+                  </div>
+
                   <button 
                     onClick={async () => {
                       if (!sqlQuery.trim()) return
