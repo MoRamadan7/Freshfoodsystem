@@ -24,17 +24,31 @@ export default function Register() {
       })
       if (signUpError) throw signUpError
 
-      // 2. Add employee record with Pending role
+      // 2. Add or Update employee record with Pending role
       if (data.user) {
-        const { error: dbError } = await supabase.from('employees').insert({
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          role: 'Pending', // Wait for Admin approval
-          is_active: false
-        })
+        // Check if employee already exists (e.g. pre-added by Admin)
+        const { data: existing } = await supabase.from('employees').select('id').eq('email', form.email).maybeSingle()
         
-        if (dbError) throw dbError
+        if (existing) {
+          // Update existing record
+          const { error: dbError } = await supabase.from('employees').update({
+            name: form.name,
+            phone: form.phone,
+            role: 'Pending',
+            is_active: false
+          }).eq('id', existing.id)
+          if (dbError) throw dbError
+        } else {
+          // Insert new record
+          const { error: dbError } = await supabase.from('employees').insert({
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            role: 'Pending', 
+            is_active: false
+          })
+          if (dbError) throw dbError
+        }
       }
 
       toast.success('تم التسجيل بنجاح! بانتظار موافقة الإدارة.')

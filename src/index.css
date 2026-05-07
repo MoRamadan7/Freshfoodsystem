@@ -167,3 +167,25 @@ tbody tr:nth-child(n+6) { animation-delay: 0.3s; }
 .dark .hover\:bg-gray-50:hover {
   background-color: rgba(255, 255, 255, 0.05) !important;
 }
+
+/* Mobile Responsive Utilities */
+@media (max-width: 640px) {
+  .glass-panel {
+    @apply rounded-none border-x-0;
+  }
+  .p-6 {
+    @apply p-4;
+  }
+  .lg\:p-6 {
+    @apply p-4;
+  }
+  .gap-6 {
+    @apply gap-4;
+  }
+  .rounded-\[2.5rem\] {
+    @apply rounded-3xl;
+  }
+  h1 { @apply text-xl; }
+  h2 { @apply text-lg; }
+  h3 { @apply text-base; }
+}

@@ -37,14 +37,24 @@ export default function Login() {
         const { error, data } = await signUp(email, password, name)
         if (error) throw error
 
-        // Attempt to insert into employees table
+        // Attempt to add or update employee record
         if (data?.user) {
-          await supabase.from('employees').insert({
-             name: name,
-             email: email,
-             role: 'Pending',
-             is_active: false
-          })
+          const { data: existing } = await supabase.from('employees').select('id').eq('email', email).maybeSingle()
+          
+          if (existing) {
+            await supabase.from('employees').update({
+              name: name,
+              role: 'Pending',
+              is_active: false
+            }).eq('id', existing.id)
+          } else {
+            await supabase.from('employees').insert({
+               name: name,
+               email: email,
+               role: 'Pending',
+               is_active: false
+            })
+          }
         }
         
         toast.success('تم التسجيل! بانتظار موافقة الإدارة.')

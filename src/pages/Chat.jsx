@@ -245,10 +245,10 @@ export default function Chat() {
   const filteredEmployees = employees.filter(e => e.name.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="h-[calc(100vh-100px)] flex bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-white/5 overflow-hidden shadow-2xl transition-all duration-500">
+    <div className="h-[calc(100vh-120px)] flex bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-white/5 overflow-hidden shadow-2xl transition-all duration-500 relative">
       
-      {/* Sidebar */}
-      <div className="w-80 border-e border-gray-100 dark:border-white/5 flex flex-col bg-gray-50/30 dark:bg-black/20">
+      {/* Sidebar - Contacts */}
+      <div className={`${activeTab !== null ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-e border-gray-100 dark:border-white/5 flex flex-col bg-gray-50/30 dark:bg-black/20 z-20`}>
         <div className="p-6">
           <h2 className="text-xl font-black text-gray-800 dark:text-emerald-400 mb-4 flex items-center gap-2">
             <Users size={24} /> التواصل
@@ -305,10 +305,18 @@ export default function Chat() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-gray-950 relative">
+      <div className={`${activeTab === null ? 'hidden md:flex' : 'flex'} flex-1 flex flex-col bg-white dark:bg-gray-950 relative z-10`}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-gray-950/50 backdrop-blur-md">
+        <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-white/50 dark:bg-gray-950/50 backdrop-blur-md">
           <div className="flex items-center gap-4">
+            {activeTab !== null && (
+              <button 
+                onClick={() => setActiveTab(null)}
+                className="md:hidden p-2 -ms-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl text-gray-500"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
             {activeTab === null ? (
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600"><Hash size={24} /></div>
             ) : (
