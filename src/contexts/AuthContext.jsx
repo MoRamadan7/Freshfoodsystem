@@ -38,46 +38,57 @@ export function AuthProvider({ children }) {
   const [dynamicRoles, setDynamicRoles] = useState({})
 
   async function fetchEmployee(email, user) {
-    if (!email) return
+    if (!email) {
+      setLoading(false)
+      return
+    }
     
-    let { data: empData } = await supabase.from('employees').select('*').eq('email', email).maybeSingle()
-    const { data: setts } = await supabase.from('company_settings').select('*').maybeSingle()
-    
-    if (!empData && user) {
-      // Use UPSERT to prevent race conditions/duplicates
-      const { data: newEmp, error } = await supabase.from('employees').upsert({
-        name: user.user_metadata?.full_name || email.split('@')[0],
-        email: email,
-        role: 'Pending',
-        is_active: false
-      }, { onConflict: 'email' }).select().single()
+    try {
+      let { data: empData } = await supabase.from('employees').select('*').eq('email', email).maybeSingle()
+      const { data: setts } = await supabase.from('company_settings').select('*').maybeSingle()
       
-      if (!error) empData = newEmp
-    }
+      if (!empData && user) {
+        const { data: newEmp, error: upsertError } = await supabase.from('employees').upsert({
+          name: user.user_metadata?.full_name || email.split('@')[0],
+          email: email,
+          role: 'Pending',
+          is_active: false,
+          employment_status: 'pending'
+        }, { onConflict: 'email' }).select().single()
+        
+        if (!upsertError) empData = newEmp
+      }
 
-    setEmployee(empData)
-    if (setts?.dynamic_roles) {
-      setDynamicRoles(setts.dynamic_roles)
+      setEmployee(empData)
+      if (setts?.dynamic_roles) {
+        setDynamicRoles(setts.dynamic_roles)
+      }
+    } catch (err) {
+      console.error('Error in fetchEmployee:', err)
+    } finally {
+      setLoading(false)
     }
-
-    // Subscribe to changes for THIS employee record
-    if (empData) {
-      const channel = supabase.channel(`emp-${empData.id}`)
-        .on('postgres_changes', { 
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'employees', 
-          filter: `id=eq.${empData.id}` 
-        }, payload => {
-          setEmployee(payload.new)
-        })
-        .subscribe()
-      
-      return () => supabase.removeChannel(channel)
-    }
-
-    setLoading(false)
   }
+
+  // Real-time listener for current employee record
+  useEffect(() => {
+    if (!employee?.id) return
+
+    const channel = supabase.channel(`emp-status-${employee.id}`)
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'employees', 
+        filter: `id=eq.${employee.id}` 
+      }, payload => {
+        setEmployee(payload.new)
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [employee?.id])
 
   // Normalize role to lowercase english key or keep dynamic
   const getNormalizedRole = (emp) => {
