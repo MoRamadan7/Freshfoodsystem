@@ -182,7 +182,7 @@ tbody tr:nth-child(n+6) { animation-delay: 0.3s; }
   .gap-6 {
     @apply gap-4;
   }
-  .rounded-\[2.5rem\] {
+  .rounded-custom {
     @apply rounded-3xl;
   }
   h1 { @apply text-xl; }
