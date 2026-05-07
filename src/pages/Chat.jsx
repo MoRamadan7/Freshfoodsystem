@@ -441,21 +441,23 @@ export default function Chat() {
                 )}
               </div>
 
-              {!text.trim() && !file ? (
+              <div className="flex items-center gap-2">
                 <button 
                   onClick={startRecording}
                   className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 hover:text-emerald-500 hover:bg-white transition-all shadow-sm"
+                  title="تسجيل ريكورد"
                 >
                   <Mic size={20} />
                 </button>
-              ) : (
+
                 <button 
-                  onClick={() => sendMessage()} disabled={uploading}
+                  onClick={() => sendMessage()} disabled={uploading || (!text.trim() && !file)}
                   className="flex items-center justify-center w-12 h-12 rounded-full bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 transition-all shadow-lg shadow-emerald-600/20 active:scale-90"
+                  title="إرسال رسالة"
                 >
                   {uploading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/> : <Send size={20} />}
                 </button>
-              )}
+              </div>
             </div>
           )}
         </div>

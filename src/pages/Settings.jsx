@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { initAI, generateSQL } from '../lib/ai'
 import toast from 'react-hot-toast'
 import {
-  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key, Sparkles, Volume2
+  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key, Sparkles, Volume2, MessageSquare
 } from 'lucide-react'
 import Modal from '../components/Modal'
 

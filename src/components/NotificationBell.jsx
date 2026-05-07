@@ -167,7 +167,7 @@ export default function NotificationBell() {
       audio.play().catch(e => console.log('Audio play blocked by browser policy'))
     }
     setPrevCount(unread.length)
-  }, [notifications, readIds, settings.notification_sound_url])
+  }, [notifications, readIds, settings.notification_sound_url, settings.task_sound_url])
 
   const unreadCount = notifications.filter(n => !readIds.includes(n.id)).length
 
