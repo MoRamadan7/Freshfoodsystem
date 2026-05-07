@@ -163,10 +163,12 @@ export default function NotificationBell() {
       const newest = unread[unread.length - 1]
       const soundUrl = newest.type === 'task' ? settings.task_sound_url : settings.notification_sound_url
       
-      const audio = new Audio(soundUrl || '/sounds/notification.mp3')
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise.catch(e => console.log('Audio play interrupted or blocked'))
+      if (soundUrl) {
+        const audio = new Audio(soundUrl)
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+          playPromise.catch(e => console.log('Audio play interrupted or blocked'))
+        }
       }
     }
     setPrevCount(unread.length)

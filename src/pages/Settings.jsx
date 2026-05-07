@@ -39,65 +39,80 @@ const Toggle = ({ label, name, checked, onChange }) => (
   </label>
 )
 
-const SoundUploader = ({ title, subtitle, icon, colorClass, url, inputRef, onUpload, uploadLogo, isRTL }) => (
-  <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-sm">
-    <div className="flex items-center gap-3 mb-6">
-      <div className={`p-3 ${colorClass} rounded-xl`}>
-        {icon}
-      </div>
-      <div>
-        <h3 className="font-bold text-gray-800 dark:text-gray-100">{title}</h3>
-        <p className="text-xs text-gray-500">{subtitle}</p>
-      </div>
-    </div>
-
-    <div className="flex flex-col sm:flex-row items-center gap-6">
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-400 group relative overflow-hidden">
-          <Volume2 size={32} />
-          <button 
-            onClick={() => inputRef.current?.click()}
-            className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Upload size={18} />
-          </button>
+const SoundUploader = ({ title, subtitle, icon, colorClass, url, inputRef, onUpload, uploadLogo, isRTL }) => {
+  const [localUploading, setLocalUploading] = useState(false)
+  return (
+    <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center gap-3 mb-6">
+        <div className={`p-3 ${colorClass} rounded-xl`}>
+          {icon}
         </div>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRTL ? 'نغمة مخصصة' : 'Custom Tone'}</span>
-      </div>
-
-      <div className="flex-1 w-full space-y-4">
-        <input 
-          type="file" 
-          ref={inputRef} 
-          className="hidden" 
-          accept="audio/*"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            if (!file) return
-            toast.loading(isRTL ? 'جاري رفع الملف الصوتي...' : 'Uploading sound...', { id: 'sound-up' })
-            const { success, url, error } = await uploadLogo(file)
-            if (success) {
-              onUpload(url)
-              toast.success(isRTL ? 'تم رفع النغمة بنجاح' : 'Sound uploaded', { id: 'sound-up' })
-            } else {
-              toast.error(error, { id: 'sound-up' })
-            }
-          }}
-        />
-        
-        <div className="flex items-center gap-3">
-          <audio controls src={url} className="h-8 flex-1" key={url} />
-          <button 
-            onClick={() => inputRef.current?.click()}
-            className="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 px-4 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 transition-all"
-          >
-            {isRTL ? 'تغيير الملف' : 'Change File'}
-          </button>
+        <div>
+          <h3 className="font-bold text-gray-800 dark:text-gray-100">{title}</h3>
+          <p className="text-xs text-gray-500">{subtitle}</p>
         </div>
       </div>
+
+      <div className="flex flex-col sm:flex-row items-center gap-6">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-400 group relative overflow-hidden">
+            {localUploading ? (
+              <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Volume2 size={32} />
+                <button 
+                  onClick={() => inputRef.current?.click()}
+                  className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Upload size={18} />
+                </button>
+              </>
+            )}
+          </div>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRTL ? 'نغمة مخصصة' : 'Custom Tone'}</span>
+        </div>
+
+        <div className="flex-1 w-full space-y-4">
+          <input 
+            type="file" 
+            ref={inputRef} 
+            className="hidden" 
+            accept="audio/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (!file) return
+              setLocalUploading(true)
+              const tid = toast.loading(isRTL ? 'جاري رفع الملف الصوتي...' : 'Uploading sound...')
+              try {
+                const { success, url, error } = await uploadLogo(file)
+                if (success) {
+                  onUpload(url)
+                  toast.success(isRTL ? 'تم رفع النغمة بنجاح' : 'Sound uploaded', { id: tid })
+                } else {
+                  toast.error(error || 'Failed to upload', { id: tid })
+                }
+              } finally {
+                setLocalUploading(false)
+              }
+            }}
+          />
+          
+          <div className="flex items-center gap-3">
+            <audio controls src={url} className="h-8 flex-1" key={url} />
+            <button 
+              disabled={localUploading}
+              onClick={() => inputRef.current?.click()}
+              className="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 px-4 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 transition-all disabled:opacity-50"
+            >
+              {isRTL ? 'تغيير الملف' : 'Change File'}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export default function Settings() {
   const { settings, updateSettings, uploadLogo } = useSettings()
