@@ -407,6 +407,8 @@ export default function Chat() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Improved Input Area */}
+        <div className="p-6 bg-white dark:bg-gray-950 border-t border-gray-100 dark:border-white/5">
           {isRecording ? (
             <div className="flex items-center justify-between bg-emerald-500 text-white p-4 rounded-[2.5rem] shadow-lg animate-pulse">
               <div className="flex items-center gap-4">
@@ -545,6 +547,5 @@ export default function Chat() {
         </div>
       )}
       </div>
-    </div>
   )
 }
