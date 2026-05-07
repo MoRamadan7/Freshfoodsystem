@@ -15,8 +15,8 @@ export default function AIChatbot() {
   const { lang, isRTL } = useLang()
   
   const welcomeMsg = lang === 'ar'
-    ? 'أهلاً بيك يا ريس! معاك "حمادة" شريكك في البيزنس. أؤمرني، تحب نفتح صفحة معينة؟ ولا محتاجني أحللك شوية بيانات؟ أنا معاك في أي حاجة حتى لو عايز تدردش!'
-    : 'Welcome boss! I am Hamada, your business partner. Need me to open a page, analyze data, or just have a chat? I am here for you!'
+    ? 'أهلاً بك! أنا مساعدك الذكي في Fresh Food. كيف يمكنني مساعدتك اليوم؟ يمكنني تحليل البيانات، فتح الصفحات، أو حتى الدردشة معك حول وضع العمل.'
+    : 'Welcome! I am your AI partner at Fresh Food. How can I help you today? I can analyze data, navigate the system, or discuss business insights with you.'
 
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -153,7 +153,7 @@ export default function AIChatbot() {
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white animate-pulse" />
         </div>
         <div className="absolute -top-12 right-0 bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-3 py-1.5 rounded-xl shadow-xl text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-100 dark:border-gray-700">
-          تحت أمرك يا هندسة! 👋
+          تحت أمرك يا فندم! 👋
         </div>
       </button>
     )
@@ -172,7 +172,7 @@ export default function AIChatbot() {
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-emerald-600 rounded-full" />
           </div>
           <div className="flex flex-col">
-            <span className="font-black text-sm tracking-wide">الخبير "حمادة"</span>
+            <span className="font-black text-sm tracking-wide">المساعد الذكي</span>
             <div className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-red-400 animate-ping' : 'bg-emerald-300'}`} />
               <span className="text-[10px] font-bold opacity-80 uppercase tracking-tighter">
@@ -225,7 +225,7 @@ export default function AIChatbot() {
               <div className="flex justify-start animate-pulse">
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl rounded-tl-none shadow-sm border border-gray-100 dark:border-gray-700 flex gap-2 items-center">
                   <Sparkles size={14} className="text-emerald-500 animate-spin" />
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRTL ? 'حمادة بيفكر...' : 'Thinking...'}</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRTL ? 'جاري التحليل...' : 'Analyzing...'}</span>
                 </div>
               </div>
             )}
@@ -258,7 +258,7 @@ export default function AIChatbot() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && handleSend()}
-                placeholder={isRTL ? "أؤمرني يا هندسة..." : "Command me boss..."}
+                placeholder={isRTL ? "كيف يمكنني مساعدتك؟" : "How can I help you?"}
                 className="flex-1 bg-transparent border-none px-2 py-2 text-sm focus:outline-none focus:ring-0 dark:text-white placeholder:text-gray-400 font-medium"
               />
               

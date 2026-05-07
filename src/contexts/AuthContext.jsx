@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
 
   async function fetchEmployee(email, user) {
     let { data: empData } = await supabase.from('employees').select('*').eq('email', email).maybeSingle()
-    const { data: setts } = await supabase.from('settings').select('*').maybeSingle()
+    const { data: setts } = await supabase.from('company_settings').select('*').maybeSingle()
     
     if (!empData && user) {
       // Auto-create pending employee for first-time OAuth/Google users

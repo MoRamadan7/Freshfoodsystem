@@ -7,8 +7,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { initAI, generateSQL } from '../lib/ai'
 import toast from 'react-hot-toast'
 import {
-  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key
+  Building2, Upload, FileText, CreditCard, Bell, Users, Save, Image, Shield, Calculator, Cpu, MapPin, Trash2, Plus, X, Check, ListPlus, Terminal, Play, AlertCircle, Database, Lock, Unlock, Key, Sparkles, Volume2
 } from 'lucide-react'
+import Modal from '../components/Modal'
 
 const CURRENCIES = [
   { code: 'EGP', symbol: 'ج.م', name: 'جنيه مصري' },
@@ -781,18 +782,88 @@ export default function Settings() {
 
           {/* 4. Notification Settings */}
           {activeTab === 'notifications' && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <Toggle label={t('notifyLowStock')} name="notify_low_stock" checked={form.notify_low_stock} onChange={handleChange} />
-                <Input label={t('notifyLowStockDays')} name="notify_low_stock_days" type="number" value={form.notify_low_stock_days} onChange={handleChange} />
+            <div className="space-y-6 animate-fade-in">
+              <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-500/20 text-blue-600 rounded-xl">
+                    <Bell size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{isRTL ? 'تنبيهات النظام' : 'System Alerts'}</h3>
+                    <p className="text-xs text-gray-500">{isRTL ? 'تحكم في الإشعارات التلقائية التي تظهر للمديرين' : 'Manage automatic alerts for management'}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Toggle label={isRTL ? 'تنبيه نقص المخزون' : 'Low Stock Alert'} name="notify_low_stock" checked={form.notify_low_stock} onChange={handleChange} />
+                  <Toggle label={isRTL ? 'تنبيه قرب انتهاء الصفقات' : 'Deals Closing Alert'} name="notify_deals_closing" checked={form.notify_deals_closing} onChange={handleChange} />
+                  <Toggle label={isRTL ? 'تنبيه الفواتير المتأخرة' : 'Overdue Invoices Alert'} name="notify_overdue_invoices" checked={form.notify_overdue_invoices} onChange={handleChange} />
+                  <Toggle label={isRTL ? 'تنبيه أعياد الميلاد' : 'Birthday Alerts'} name="notify_birthdays" checked={form.notify_birthdays} onChange={handleChange} />
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <Toggle label={t('notifyDealsClosing')} name="notify_deals_closing" checked={form.notify_deals_closing} onChange={handleChange} />
-                <Input label={t('notifyDealsClosingDays')} name="notify_deals_closing_days" type="number" value={form.notify_deals_closing_days} onChange={handleChange} />
-              </div>
-              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
-                <Toggle label={t('notifyOverdueInvoices')} name="notify_overdue_invoices" checked={form.notify_overdue_invoices} onChange={handleChange} />
-                <Toggle label={t('notifyPayroll')} name="notify_payroll" checked={form.notify_payroll} onChange={handleChange} />
+
+              <div className="bg-white dark:bg-gray-950 border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-500/20 text-purple-600 rounded-xl">
+                    <Volume2 size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100">{isRTL ? 'نغمة الإشعارات' : 'Notification Sound'}</h3>
+                    <p className="text-xs text-gray-500">{isRTL ? 'خصص صوت التنبيه الذي يتم تشغيله عند وصول إشعار جديد' : 'Customize the alert sound played for new notifications'}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-6">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center text-gray-400 group relative overflow-hidden">
+                      <Volume2 size={32} />
+                      <button 
+                        onClick={() => soundFileInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Upload size={18} />
+                      </button>
+                    </div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{isRTL ? 'نغمة مخصصة' : 'Custom Tone'}</span>
+                  </div>
+
+                  <div className="flex-1 w-full space-y-4">
+                    <input 
+                      type="file" 
+                      ref={soundFileInputRef} 
+                      className="hidden" 
+                      accept="audio/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        toast.loading(isRTL ? 'جاري رفع الملف الصوتي...' : 'Uploading sound...', { id: 'sound-up' })
+                        const { success, url, error } = await uploadLogo(file)
+                        if (success) {
+                          setForm(f => ({ ...f, notification_sound_url: url }))
+                          toast.success(isRTL ? 'تم رفع النغمة بنجاح' : 'Sound uploaded', { id: 'sound-up' })
+                        } else {
+                          toast.error(error, { id: 'sound-up' })
+                        }
+                      }}
+                    />
+                    
+                    <div className="flex items-center gap-3">
+                      <audio controls src={form.notification_sound_url} className="h-8 flex-1" />
+                      <button 
+                        onClick={() => soundFileInputRef.current?.click()}
+                        className="bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 px-4 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 transition-all"
+                      >
+                        {isRTL ? 'تغيير الملف' : 'Change File'}
+                      </button>
+                    </div>
+                    
+                    <p className="text-[10px] text-gray-400 leading-relaxed">
+                      {isRTL 
+                        ? '* يمكنك رفع أي ملف صوتي (MP3, WAV). سيتم تشغيل هذه النغمة لكل الموظفين عند وصول تنبيهات جديدة.' 
+                        : '* You can upload any audio file (MP3, WAV). This tone will play for all employees when new alerts arrive.'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
