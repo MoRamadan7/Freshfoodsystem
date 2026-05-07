@@ -1,10 +1,19 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useLang } from '../contexts/LangContext'
 import { LogOut, Clock, ShieldCheck, Mail } from 'lucide-react'
 
 export default function PendingApproval() {
-  const { user, signOut } = useAuth()
+  const { user, employee, signOut, isAdmin } = useAuth()
   const { t, isRTL } = useLang()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (employee?.is_active || isAdmin) {
+      navigate('/', { replace: true })
+    }
+  }, [employee?.is_active, isAdmin, navigate])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center p-4" dir={isRTL ? 'rtl' : 'ltr'}>

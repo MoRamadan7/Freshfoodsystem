@@ -6,7 +6,7 @@ import { useSettings } from '../contexts/SettingsContext'
 import { useLang } from '../contexts/LangContext'
 import Modal from '../components/Modal'
 import toast from 'react-hot-toast'
-import { Plus, Search, Pencil, Trash2, UserCheck, UserX, Phone, MessageCircle, Eye, Facebook, Linkedin, Instagram, Printer, UserMinus, ShieldAlert, Download } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, UserCheck, UserX, Phone, MessageCircle, Eye, Facebook, Linkedin, Instagram, Printer, UserMinus, ShieldAlert, Download, Clock } from 'lucide-react'
 import { generateEmployeeListHTML } from '../lib/employeeTemplate'
 import { exportToExcel } from '../lib/exportHelpers'
 
@@ -424,8 +424,18 @@ export default function Employees() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">حالة العمل</label>
-            <select value={form.employment_status || 'active'} onChange={e => setForm(f => ({ ...f, employment_status: e.target.value }))}
-              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+            <select 
+              value={form.employment_status || 'active'} 
+              onChange={e => {
+                const status = e.target.value
+                setForm(f => ({ 
+                  ...f, 
+                  employment_status: status,
+                  is_active: status === 'active' // Auto-activate if status is active
+                }))
+              }}
+              className="w-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
               <option value="active">نشط</option>
               <option value="pending">قيد المراجعة</option>
               <option value="resigned">استقال</option>
@@ -435,7 +445,7 @@ export default function Employees() {
           <div className="flex items-center gap-2 mt-1 sm:col-span-2">
             <input type="checkbox" id="active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))}
               className="w-4 h-4 accent-emerald-600 rounded" />
-            <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-300">موظف نشط</label>
+            <label htmlFor="active" className="text-sm text-gray-700 dark:text-gray-300">الحساب مفعل (يستطيع دخول النظام)</label>
           </div>
           {customFieldsSchema.map(f => (
             <div key={f.id} className={f.type === 'checkbox' ? 'flex items-center gap-2 pt-6' : ''}>
