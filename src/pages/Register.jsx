@@ -35,7 +35,10 @@ export default function Register() {
             name: form.name,
             phone: form.phone,
             role: 'Pending',
-            is_active: false
+            is_active: false,
+            employee_type: 'monthly',
+            basic_salary: 0,
+            hire_date: new Date().toISOString().split('T')[0]
           }).eq('id', existing.id)
           if (dbError) throw dbError
         } else {
@@ -45,7 +48,10 @@ export default function Register() {
             email: form.email,
             phone: form.phone,
             role: 'Pending', 
-            is_active: false
+            is_active: false,
+            employee_type: 'monthly',
+            basic_salary: 0,
+            hire_date: new Date().toISOString().split('T')[0]
           })
           if (dbError) throw dbError
         }

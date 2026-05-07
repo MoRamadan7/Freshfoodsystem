@@ -164,7 +164,10 @@ export default function NotificationBell() {
       const soundUrl = newest.type === 'task' ? settings.task_sound_url : settings.notification_sound_url
       
       const audio = new Audio(soundUrl || '/sounds/notification.mp3')
-      audio.play().catch(e => console.log('Audio play blocked by browser policy'))
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.catch(e => console.log('Audio play interrupted or blocked'))
+      }
     }
     setPrevCount(unread.length)
   }, [notifications, readIds, settings.notification_sound_url, settings.task_sound_url])

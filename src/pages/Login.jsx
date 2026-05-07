@@ -45,14 +45,20 @@ export default function Login() {
             await supabase.from('employees').update({
               name: name,
               role: 'Pending',
-              is_active: false
+              is_active: false,
+              employee_type: 'monthly',
+              basic_salary: 0,
+              hire_date: new Date().toISOString().split('T')[0]
             }).eq('id', existing.id)
           } else {
             await supabase.from('employees').insert({
                name: name,
                email: email,
                role: 'Pending',
-               is_active: false
+               is_active: false,
+               employee_type: 'monthly',
+               basic_salary: 0,
+               hire_date: new Date().toISOString().split('T')[0]
             })
           }
         }
